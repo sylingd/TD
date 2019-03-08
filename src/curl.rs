@@ -59,7 +59,7 @@ impl Fetch {
 		easy.write_function(move |data| {
 			write_result.lock().unwrap().extend_from_slice(data);
 			Ok(data.len())
-		});
+		}).unwrap();
 
 		// Result<(Easy, Arc<Mutex<Vec<u8>>>), Error>
 		let request = Ok((easy, result));
