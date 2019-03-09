@@ -16,10 +16,19 @@ branches:
   only:
     - master
 
-cache:
-  - cargo
+cache: cargo
 
 before_cache:
+  - rm -rfv target/debug/incremental/$CRATE_NAME-*
+  - rm -rfv target/debug/.fingerprint/$CRATE_NAME-*
+  - rm -rfv target/debug/build/$CRATE_NAME-*
+  - rm -rfv target/debug/deps/$CRATE_NAME-*
+  - rm -rfv target/debug/$CRATE_NAME.d
+  - rm -rfv target/release/incremental/$CRATE_NAME-*
+  - rm -rfv target/release/.fingerprint/$CRATE_NAME-*
+  - rm -rfv target/release/build/$CRATE_NAME-*
+  - rm -rfv target/release/deps/$CRATE_NAME-*
+  - rm -rfv target/release/$CRATE_NAME.d
   - cargo clean -p $CRATE_NAME
 
 before_install:
