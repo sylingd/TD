@@ -31,18 +31,16 @@ pub struct Manager {
 }
 
 impl Manager {
-	pub fn init_channel(&self, channel: &str, token: &str) {
+	pub fn init_channel(&self, channel: String, token: String) {
 		let tc = self.thread.clone();
 		{
 			let mut tc = tc.lock().unwrap();
 			*tc += 1;
 		}
-		let channel = String::from(channel);
-		let token = String::from(token);
 		let sender = mpsc::Sender::clone(&self.sender);
 		thread::spawn(move || {
 			let mut core = Core::new().unwrap();
-			let req = twitch::channel(core.handle(), channel.as_str(), token.as_str());
+			let req = twitch::channel(core.handle(), channel, token);
 			match core.run(req) {
 				Ok(v) => {
 					if !v.is_empty() {

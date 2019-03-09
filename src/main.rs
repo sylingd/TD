@@ -30,7 +30,6 @@ fn main() {
 		Err(f) => panic!(f.to_string())
 	};
 
-
 	let manager = Manager::new();
 	let has_opt = args.len() > 1;
 
@@ -40,7 +39,6 @@ fn main() {
 		io::stdout().write(b"Input OAuth Token (optional): ").unwrap();
 		io::stdin().read_line(&mut token).unwrap();
 	}
-	let token = token.as_str();
 
 	let mut mode = get_arg(&matches, "m");
 	if mode == "" && !has_opt {
@@ -63,11 +61,10 @@ fn main() {
 			print!("Input channel name(s), separated by ',': ");
 			io::stdin().read_line(&mut channels).unwrap();
 		}
-		let channels = channels.as_str();
 		if channels.contains(",") {
 			let split_channels = channels.split(",");
 			for channel in split_channels {
-				manager.lock().unwrap().init_channel(channel, token);
+				manager.lock().unwrap().init_channel(String::from(channel), token.clone());
 			}
 		} else {
 			manager.lock().unwrap().init_channel(channels, token);

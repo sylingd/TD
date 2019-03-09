@@ -62,13 +62,11 @@ pub fn download(handle: Handle, url: String) -> TdFuture<Vec<u8>> {
 
 	TdFuture::new(Box::new(req))
 }
-pub fn channel(handle: Handle, name: &str, token: &str) -> TdFuture<String> {
-	let name = String::from(name);
-
+pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> {
 	let token_param = {
 		let mut arr: Vec<(&str, &str)> = Vec::new();
 		arr.push(("need_https", "true"));
-		arr.push(("oauth_token", token));
+		arr.push(("oauth_token", token.as_str()));
 		arr.push(("platform", "web"));
 		arr.push(("player_backend", "mediaplayer"));
 		arr.push(("player_type", "site"));
@@ -147,4 +145,8 @@ pub fn channel(handle: Handle, name: &str, token: &str) -> TdFuture<String> {
 	});
 
 	TdFuture::new(Box::new(req))
+}
+
+pub fn get_all_access_channels(token: String) {
+	//
 }
