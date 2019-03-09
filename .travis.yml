@@ -28,12 +28,12 @@ before_cache:
   - cargo clean -p $CRATE_NAME
 
 before_install:
-  - rustup self update
   - rustc -Vv
   - cargo -V
 
 script:
-  - cargo build --all --verbose
+  - cargo build --verbose
+  - cargo build --release --verbose
 
 after_success:
   - files=$(ls target/release)

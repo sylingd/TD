@@ -66,15 +66,20 @@ fn main() {
 		if channels.contains(",") {
 			let split_channels = channels.split(",");
 			for channel in split_channels {
-				manager.init_channel(channel, token);
+				manager.lock().unwrap().init_channel(channel, token);
 			}
 		} else {
-			manager.init_channel(channels, token);
+			manager.lock().unwrap().init_channel(channels, token);
 		}
 	}
 
-	while manager.get_thread() > 0 {
-		std::thread::sleep(std::time::Duration::from_secs(2));
+	loop {
+		let cnt = manager.lock().unwrap().get_thread();
+		if cnt > 0 {
+			std::thread::sleep(std::time::Duration::from_secs(2));
+		} else {
+			break;
+		}
 	}
 }
 
