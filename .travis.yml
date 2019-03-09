@@ -1,27 +1,46 @@
+sudo: required
+env:
+  global:
+    - CRATE_NAME=twitchdl
 os:
   - linux
   - windows
 language: rust
 rust:
   - beta
-  - nightly
-matrix:
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
 
-cache: cargo
+cache:
+  - cargo
+  - directories:
+    - "target"
+
+before_cache:
+  - rm -rfv target/debug/incremental/$CRATE_NAME-*
+  - rm -rfv target/debug/.fingerprint/$CRATE_NAME-*
+  - rm -rfv target/debug/build/$CRATE_NAME-*
+  - rm -rfv target/debug/deps/$CRATE_NAME-*
+  - rm -rfv target/debug/$CRATE_NAME.d
+  - rm -rfv target/release/incremental/$CRATE_NAME-*
+  - rm -rfv target/release/.fingerprint/$CRATE_NAME-*
+  - rm -rfv target/release/build/$CRATE_NAME-*
+  - rm -rfv target/release/deps/$CRATE_NAME-*
+  - rm -rfv target/release/$CRATE_NAME.d
+  - cargo clean -p $CRATE_NAME
 
 before_install:
+  - rustup self update
   - rustc -Vv
   - cargo -V
 
 script:
-  - cargo build --release --verbose
+  - cargo build --all --verbose
 
 after_success:
-  - res=$(ls target/release)
-  - echo $res
+  - files=$(ls target/release)
+  - echo $files
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then upload=$(curl -F "file=@target/release/$CRATE_NAME" https://file.io/?expires=3d); fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then upload=$(curl -F "file=@target/release/$CRATE_NAME.exe" https://file.io/?expires=3d); fi
+  - echo $upload
 
 notifications:
   email: false
