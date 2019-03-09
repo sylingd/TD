@@ -19,9 +19,7 @@ enum ManageMessage {
 
 struct DownloadThread {
 	busy: Arc<Mutex<bool>>,
-	sender: Sender<ManageMessage>,
-	receiver: Arc<Mutex<Receiver<ManageMessage>>>,
-	handle: thread::JoinHandle<()>
+	sender: Sender<ManageMessage>
 }
 
 pub struct Manager {
@@ -66,13 +64,11 @@ impl Manager {
 		});
 	}
 	fn start_download(&mut self) -> DownloadThread {
-		let (tx, rx) = mpsc::channel();
-		let receiver = Arc::new(Mutex::new(rx));
+		let (tx, receiver) = mpsc::channel();
 		let busy = Arc::new(Mutex::new(false));
-		let t_receiver = receiver.clone();
 		let t_busy = busy.clone();
 		let t_c = self.thread.clone();
-		let new_thread = thread::spawn(move || {
+		thread::spawn(move || {
 			{
 				let mut tc = t_c.lock().unwrap();
 				*tc += 1;
@@ -81,7 +77,6 @@ impl Manager {
 			let mut core = Core::new().unwrap();
 			loop {
 				// Try to receive any message
-				let receiver = t_receiver.lock().unwrap();
 				match receiver.try_recv() {
 					Ok(message) => {
 						if let ManageMessage::MEDIA(v1, v2, v3) = message {
@@ -122,9 +117,7 @@ impl Manager {
 		});
 		DownloadThread {
 			busy: busy,
-			sender: tx,
-			receiver: receiver,
-			handle: new_thread
+			sender: tx
 		}
 	}
 	pub fn add_download(&mut self, output: String, name: String, url: String) {
