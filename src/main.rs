@@ -3,6 +3,7 @@ extern crate error_chain;
 extern crate getopts;
 extern crate serde_json;
 extern crate tokio_core;
+extern crate tokio_fs;
 
 use std::{env, io::{self, Write}};
 use getopts::{Options, Matches};

@@ -2,7 +2,7 @@ extern crate futures;
 extern crate tokio_core;
 
 use std::thread;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 use std::sync::{mpsc::{self, Sender, Receiver, TryRecvError}, Arc, Mutex};
 
 use futures::Future;
@@ -46,6 +46,8 @@ impl Manager {
 			match core.run(req) {
 				Ok(v) => {
 					if !v.is_empty() {
+						// TODO: create dir
+						//tokio_fs::create_dir
 						sender.send(ManageMessage::LIST(String::from(""), v)).unwrap();
 					}
 				}
@@ -60,7 +62,44 @@ impl Manager {
 		});
 	}
 	pub fn start_list(&self, output: String, url: String) {
+		let t_c = self.thread.clone();
+		let t_downloaded = self.downloaded.clone();
+		let sender = mpsc::Sender::clone(&self.sender);
 		thread::spawn(move || {
+			{
+				let mut tc = t_c.lock().unwrap();
+				*tc += 1;
+			}
+			let mut core = Core::new().unwrap();
+			let mut retry = 0;
+			loop {
+				let req = twitch::list(core.handle(), url.clone());
+				match core.run(req) {
+					Ok(res) => {
+						retry = 0;
+						let mut downloaded = t_downloaded.lock().unwrap();
+						for (time, d, u) in res {
+							if !downloaded.contains(&u) {
+								downloaded.push(u.clone());
+								let name = format!("{}_{}.ts", time, d);
+								sender.send(ManageMessage::MEDIA(output.clone(), name, u)).unwrap();
+							}
+						}
+					},
+					Err(e) => {
+						println!("{}", e);
+						retry += 1;
+						if retry > 3 {
+							break;
+						}
+					}
+				}
+				thread::sleep(Duration::from_secs(2));
+			}
+			{
+				let mut tc = t_c.lock().unwrap();
+				*tc -= 1;
+			}
 		});
 	}
 	fn start_download(&mut self) -> DownloadThread {
@@ -86,8 +125,12 @@ impl Manager {
 							}
 							// Download
 							let req = twitch::download(core.handle(), v3);
+							let req = req.and_then(move |res| {
+								// write to file
+								let write_to = format!("{}/{}", v1, v2);
+								tokio_fs::write(write_to, res).map_err(From::from)
+							});
 							core.run(req).unwrap();
-							// TODO: write to file
 							// Update timeout
 							last_wakeup = SystemTime::now();
 							{
@@ -160,24 +203,6 @@ impl Manager {
 			}
 		});
 	}
-	/*
-	thread::spawn(|| {
-		let mut core = Core::new().unwrap();
-		let req = twitch::list(core.handle(), v);
-		let res = core.run(req).unwrap();
-		{
-			let mut dlog = downloaded.lock().unwrap();
-			let sender = sender.lock().unwrap();
-			for (time, d, url) in res {
-				if !dlog.contains(&url) {
-					dlog.push(url.clone());
-					let name = format!("{}_{}.ts", time, d);
-					sender.send(ManageMessage::MEDIA(String::new(), name, url));
-				}
-			}
-		}
-	});
-	*/
 	pub fn get_thread(&self) -> u16 {
 		*(self.thread.lock().unwrap())
 	}
