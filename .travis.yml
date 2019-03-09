@@ -1,0 +1,28 @@
+os:
+  - linux
+  - windows
+language: rust
+rust:
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
+cache: cargo
+
+before_install:
+  - rustc -Vv
+  - cargo -V
+
+script:
+  - cargo build --release --verbose
+
+after_success:
+  - res=$(ls target/release)
+  - echo $res
+
+notifications:
+  email: false
+
