@@ -12,6 +12,10 @@ rust:
 notifications:
   email: false
 
+branches:
+  only:
+    - master
+
 cache:
   - cargo
 
@@ -31,7 +35,7 @@ after_success:
   - echo $files
 
 before_deploy:
-  - export RELEASE_NAME=$(echo $TRAVIS_COMMIT | cut -c 1-16)
+  - export RELEASE_NAME=`date +%m.%d`"."`echo $TRAVIS_COMMIT | cut -c 1-16`
   - git tag $RELEASE_NAME
 
 deploy:
