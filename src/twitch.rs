@@ -20,6 +20,13 @@ pub const GQL_URL: &'static str = "https://gql.twitch.tv/gql";
 pub const CLIENT_ID: &'static str = "jzkbprff40iqj646a697cyrvl0zt2m6";
 pub const GQL_CLIENT_ID: &'static str = "kimne78kx3ncx6brgo4mv6wki5h1ko";
 
+pub struct OwlChannel {
+	id: String,
+	channel: String,
+	name: String,
+	player: String
+}
+
 pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 	let mut req = Fetch::new(&handle);
 	req.set_url(url);
@@ -133,8 +140,6 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 			Ok(v) => {
 				// Use first variant
 				let uri = format!("{}", v.variants[0].uri);
-				println!("{}", uri);
-				// self.list(uri);
 				Ok(uri)
 			},
 			Err(e) => {
@@ -147,6 +152,47 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	TdFuture::new(Box::new(req))
 }
 
-pub fn get_all_access_channels(token: String) {
-	//
+pub fn get_all_access_channels(handle: Handle) -> TdFuture<Vec<OwlChannel>> {
+	let mut req = Fetch::new(&handle);
+	req.set_url(String::from(GQL_URL));
+	req.set_post(String::from("[{\"operationName\":\"MultiviewGetChanletDetails\",\"variables\":{\"channelLogin\":\"overwatchleague\"},\"extensions\":{\"persistedQuery\":{\"version\":1,\"sha256Hash\":\"23e36d2b3a68dcb2f634dd5d7682e3a918a5598f63ad3a6415a6df602e3f7447\"}}}]"));
+	let req = req.exec().and_then(move |res| {
+		match serde_json::from_str(std::str::from_utf8(&res).unwrap()) {
+			Ok(parsed) => {
+				let mut result = Vec::new();
+				let parsed: serde_json::Value = parsed;
+				let chanlets = parsed.get(0).unwrap().get("data").unwrap().get("user").unwrap().get("channel").unwrap().get("chanlets").unwrap().as_array().unwrap();
+				for it in chanlets.iter() {
+					let mut title = String::new();
+					let mut player = String::new();
+					let contentAttributes = it.get("contentAttributes").unwrap().as_array().unwrap();
+					for val in contentAttributes.iter() {
+						let key = val.get("key").unwrap().as_str().unwrap();
+						let value = val.get("value").unwrap().as_str().unwrap();
+						if key == "displayTitle" {
+							title = String::from(value);
+						}
+						if key == "player" {
+							player = String::from(value);
+						}
+						if !title.is_empty() && !player.is_empty() {
+							break;
+						}
+					}
+					result.push(OwlChannel {
+						id: String::from(it.get("id").unwrap().as_str().unwrap()),
+						channel: String::from(it.get("owner").unwrap().get("login").unwrap().as_str().unwrap()),
+						name: title,
+						player: player
+					});
+				}
+				Ok(result)
+			},
+			Err(e) => {
+				Err(Error::from(e))
+			}
+		}
+	});
+
+	TdFuture::new(Box::new(req))
 }

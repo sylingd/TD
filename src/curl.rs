@@ -82,7 +82,11 @@ impl Fetch {
 	}
 
 	pub fn set_url(&mut self, url: String) {
-		self.url = url.clone()
+		self.url = url;
+	}
+
+	pub fn set_post(&mut self, post: String) {
+		self.post = post;
 	}
 
 	pub fn new(handle: &Handle) -> Self {

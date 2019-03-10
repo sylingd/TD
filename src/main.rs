@@ -53,7 +53,7 @@ fn main() {
 	let mode: u8 = mode.parse().unwrap_or(1);
 
 	if mode == 2 || mode == 3 {
-		//TODO
+		//let channels = twitch::get_all_access_channels()
 	} else {
 		let mut channels = get_arg(&matches, "c");
 		if channels == "" {
