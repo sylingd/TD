@@ -165,8 +165,8 @@ pub fn get_all_access_channels(handle: Handle) -> TdFuture<Vec<OwlChannel>> {
 				for it in chanlets.iter() {
 					let mut title = String::new();
 					let mut player = String::new();
-					let contentAttributes = it.get("contentAttributes").unwrap().as_array().unwrap();
-					for val in contentAttributes.iter() {
+					let content_attributes = it.get("contentAttributes").unwrap().as_array().unwrap();
+					for val in content_attributes.iter() {
 						let key = val.get("key").unwrap().as_str().unwrap();
 						let value = val.get("value").unwrap().as_str().unwrap();
 						if key == "displayTitle" {

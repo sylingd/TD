@@ -33,6 +33,13 @@ fn main() {
 	let manager = Manager::new();
 	let has_opt = args.len() > 1;
 
+	let mut output_dir = get_arg(&matches, "d");
+	if output_dir == "" {
+		output_dir = String::new();
+		io::stdout().write(b"Input output directory, end without '/': ").unwrap();
+		io::stdin().read_line(&mut output_dir).unwrap();
+	}
+
 	let mut token = get_arg(&matches, "t");
 	if token == "" && !has_opt {
 		token = String::new();
@@ -68,19 +75,19 @@ fn main() {
 					if index > channels.len() - 1 {
 						continue;
 					}
-					manager.lock().unwrap().init_channel(channels[index].channel.clone(), token.clone(), channels[index].player.clone());
+					manager.lock().unwrap().init_channel(output_dir.clone(), channels[index].channel.clone(), token.clone(), channels[index].player.clone());
 				}
 			} else {
 				let index: usize = channel_index.parse().unwrap_or(9999);
 				if index < channels.len() {
-					manager.lock().unwrap().init_channel(channels[index].channel.clone(), token.clone(), channels[index].player.clone());
+					manager.lock().unwrap().init_channel(output_dir.clone(), channels[index].channel.clone(), token.clone(), channels[index].player.clone());
 				}
 			}
 		} else {
 			// Auto all access pass
 			for channel in channels.iter() {
 				if channel.name.contains("Main Stream / Map") {
-					manager.lock().unwrap().init_channel(channel.channel.clone(), token.clone(), channel.player.clone());
+					manager.lock().unwrap().init_channel(output_dir.clone(), channel.channel.clone(), token.clone(), channel.player.clone());
 				}
 			}
 		}
@@ -94,10 +101,10 @@ fn main() {
 		if channels.contains(",") {
 			let split_channels = channels.split(",");
 			for channel in split_channels {
-				manager.lock().unwrap().init_channel(String::from(channel), token.clone(), String::new());
+				manager.lock().unwrap().init_channel(output_dir.clone(), String::from(channel), token.clone(), String::new());
 			}
 		} else {
-			manager.lock().unwrap().init_channel(channels, token, String::new());
+			manager.lock().unwrap().init_channel(output_dir.clone(), channels, token, String::new());
 		}
 	}
 

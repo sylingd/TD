@@ -1,12 +1,15 @@
 extern crate futures;
 extern crate tokio_core;
+extern crate chrono;
 
 use std::thread;
+use std::path::Path;
 use std::time::{Duration, SystemTime};
 use std::sync::{mpsc::{self, Sender, Receiver, TryRecvError}, Arc, Mutex};
 
 use futures::Future;
 use tokio_core::reactor::Core;
+use chrono::offset::Local;
 
 use super::twitch;
 
@@ -31,7 +34,7 @@ pub struct Manager {
 }
 
 impl Manager {
-	pub fn init_channel(&self, channel: String, token: String, name: String) {
+	pub fn init_channel(&self, output_dir: String, channel: String, token: String, name: String) {
 		let tc = self.thread.clone();
 		{
 			let mut tc = tc.lock().unwrap();
@@ -40,13 +43,16 @@ impl Manager {
 		let sender = mpsc::Sender::clone(&self.sender);
 		thread::spawn(move || {
 			let mut core = Core::new().unwrap();
-			let req = twitch::channel(core.handle(), channel, token);
+			let req = twitch::channel(core.handle(), channel.clone(), token);
 			match core.run(req) {
 				Ok(v) => {
 					if !v.is_empty() {
-						// TODO: create dir
-						//tokio_fs::create_dir
-						sender.send(ManageMessage::LIST(String::from(""), v)).unwrap();
+						let output = format!("{}/{}_{}", output_dir, Local::now().format("%m%d_%H_%M_%S"), if name.is_empty() { channel } else { name });
+						let path = Path::new(output.as_str());
+						if !path.exists() {
+							core.run(tokio_fs::create_dir_all(path)).unwrap();
+						}
+						sender.send(ManageMessage::LIST(output, v)).unwrap();
 					}
 				}
 				Err(e) => {
