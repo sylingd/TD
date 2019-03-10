@@ -53,7 +53,37 @@ fn main() {
 	let mode: u8 = mode.parse().unwrap_or(1);
 
 	if mode == 2 || mode == 3 {
-		//let channels = twitch::get_all_access_channels()
+		let channels = manager.lock().unwrap().get_all_access_channels().unwrap();
+		if mode == 2 {
+			for i in 0..channels.len()-1 {
+				println!(" * {} : {}", i, channels[i].name);
+			}
+			let mut channel_index = String::new();
+			print!("Choose channel(s), separated by ',': ");
+			io::stdin().read_line(&mut channel_index).unwrap();
+			if channel_index.contains(",") {
+				let split_channels = channel_index.split(",");
+				for index in split_channels {
+					let index: usize = index.parse().unwrap_or(9999);
+					if index > channels.len() - 1 {
+						continue;
+					}
+					manager.lock().unwrap().init_channel(channels[index].channel.clone(), token.clone(), channels[index].player.clone());
+				}
+			} else {
+				let index: usize = channel_index.parse().unwrap_or(9999);
+				if index < channels.len() {
+					manager.lock().unwrap().init_channel(channels[index].channel.clone(), token.clone(), channels[index].player.clone());
+				}
+			}
+		} else {
+			// Auto all access pass
+			for channel in channels.iter() {
+				if channel.name.contains("Main Stream / Map") {
+					manager.lock().unwrap().init_channel(channel.channel.clone(), token.clone(), channel.player.clone());
+				}
+			}
+		}
 	} else {
 		let mut channels = get_arg(&matches, "c");
 		if channels == "" {
@@ -64,10 +94,10 @@ fn main() {
 		if channels.contains(",") {
 			let split_channels = channels.split(",");
 			for channel in split_channels {
-				manager.lock().unwrap().init_channel(String::from(channel), token.clone());
+				manager.lock().unwrap().init_channel(String::from(channel), token.clone(), String::new());
 			}
 		} else {
-			manager.lock().unwrap().init_channel(channels, token);
+			manager.lock().unwrap().init_channel(channels, token, String::new());
 		}
 	}
 

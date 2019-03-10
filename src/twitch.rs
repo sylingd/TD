@@ -21,10 +21,10 @@ pub const CLIENT_ID: &'static str = "jzkbprff40iqj646a697cyrvl0zt2m6";
 pub const GQL_CLIENT_ID: &'static str = "kimne78kx3ncx6brgo4mv6wki5h1ko";
 
 pub struct OwlChannel {
-	id: String,
-	channel: String,
-	name: String,
-	player: String
+	pub id: String,
+	pub channel: String,
+	pub name: String,
+	pub player: String
 }
 
 pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {

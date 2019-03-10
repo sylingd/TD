@@ -31,7 +31,7 @@ pub struct Manager {
 }
 
 impl Manager {
-	pub fn init_channel(&self, channel: String, token: String) {
+	pub fn init_channel(&self, channel: String, token: String, name: String) {
 		let tc = self.thread.clone();
 		{
 			let mut tc = tc.lock().unwrap();
@@ -200,6 +200,19 @@ impl Manager {
 				}
 			}
 		});
+	}
+	pub fn get_all_access_channels(&self) -> Option<Vec<twitch::OwlChannel>> {
+		let mut core = Core::new().unwrap();
+		let req = twitch::get_all_access_channels(core.handle());
+		match core.run(req) {
+			Ok(v) => {
+				Some(v)
+			}
+			Err(e) => {
+				println!("{}", e);
+				None
+			}
+		}
 	}
 	pub fn get_thread(&self) -> u16 {
 		*(self.thread.lock().unwrap())
