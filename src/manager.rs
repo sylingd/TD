@@ -1,7 +1,3 @@
-extern crate futures;
-extern crate tokio_core;
-extern crate chrono;
-
 use std::fs;
 use std::thread;
 use std::path::Path;
@@ -10,6 +6,7 @@ use std::sync::{mpsc::{self, Sender, Receiver, TryRecvError}, Arc, Mutex};
 
 use tokio_core::reactor::Core;
 use chrono::offset::Local;
+use rand::Rng;
 
 use super::twitch;
 
@@ -30,7 +27,8 @@ pub struct Manager {
 	thread: Arc<Mutex<u16>>,
 	sender: Sender<ManageMessage>,
 	receiver: Arc<Mutex<Receiver<ManageMessage>>>,
-	download_threads: Vec<DownloadThread>
+	download_threads: Vec<DownloadThread>,
+	create_timer: SystemTime
 }
 
 impl Manager {
@@ -58,7 +56,7 @@ impl Manager {
 					}
 				}
 				Err(e) => {
-					dbg!(e);
+					eprintln!("Init channel failed: {}", e);
 				}
 			};
 			{
@@ -93,7 +91,7 @@ impl Manager {
 						}
 					},
 					Err(e) => {
-						dbg!(e);
+						eprintln!("Fetch list failed: {}", e);
 						retry += 1;
 						if retry > 3 {
 							break;
@@ -113,6 +111,8 @@ impl Manager {
 		let busy = Arc::new(Mutex::new(false));
 		let t_busy = busy.clone();
 		let t_c = self.thread.clone();
+		let t_self = mpsc::Sender::clone(&tx);
+		dbg!("Create download thread");
 		thread::spawn(move || {
 			{
 				let mut tc = t_c.lock().unwrap();
@@ -130,7 +130,7 @@ impl Manager {
 								*tb = true;
 							}
 							// Download
-							let req = twitch::download(core.handle(), v3);
+							let req = twitch::download(core.handle(), v3.clone());
 							match core.run(req) {
 								Ok(res) => {
 									dbg!(format!("Downloaded {}", v2));
@@ -138,7 +138,9 @@ impl Manager {
 									fs::write(write_to, res).unwrap();
 								},
 								Err(e) => {
-									dbg!(e);
+									// Download failed, retry
+									eprintln!("Download {} failed: {}", v3, e);
+									t_self.send(ManageMessage::MEDIA(v1, v2, v3)).unwrap();
 								}
 							}
 							// Update timeout
@@ -174,6 +176,7 @@ impl Manager {
 		}
 	}
 	pub fn add_download(&mut self, output: String, name: String, url: String) {
+		dbg!("Add download mission");
 		// Try to get a free thread
 		let message = ManageMessage::MEDIA(output, name, url);
 		let mut found_t = None;
@@ -190,10 +193,17 @@ impl Manager {
 				t.sender.send(message).unwrap();
 			},
 			None => {
-				// Create a new download thread
-				let t = self.start_download();
-				t.sender.send(message).unwrap();
-				self.download_threads.push(t);
+				let current = SystemTime::now();
+				if self.download_threads.len() <= 1 || current.duration_since(self.create_timer).unwrap().as_secs() > 1 {
+					// Create a new download thread
+					let t = self.start_download();
+					t.sender.send(message).unwrap();
+					self.download_threads.push(t);
+					self.create_timer = current;
+				} else {
+					let index = rand::thread_rng().gen_range(0, self.download_threads.len() - 1);
+					self.download_threads[index].sender.send(message).unwrap();
+				}
 			}
 		}
 	}
@@ -221,7 +231,7 @@ impl Manager {
 				Some(v)
 			}
 			Err(e) => {
-				dbg!(e);
+				eprintln!("Get all access channels failed: {}", e);
 				None
 			}
 		}
@@ -236,7 +246,8 @@ impl Manager {
 			thread: Arc::new(Mutex::new(0)),
 			sender: tx,
 			receiver: Arc::new(Mutex::new(rx)),
-			download_threads: Vec::new()
+			download_threads: Vec::new(),
+			create_timer: SystemTime::now()
 		}));
 		Self::start(res.clone());
 		res

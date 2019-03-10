@@ -1,8 +1,3 @@
-extern crate curl;
-extern crate futures;
-extern crate tokio_core;
-extern crate tokio_curl;
-
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
 use std::rc::Rc;

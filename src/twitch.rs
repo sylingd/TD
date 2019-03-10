@@ -1,8 +1,3 @@
-extern crate m3u8_rs;
-extern crate chrono;
-extern crate tokio_core;
-extern crate futures;
-
 use m3u8_rs::parse_media_playlist_res;
 use chrono::{
 	prelude::{DateTime, Utc},
@@ -50,8 +45,8 @@ pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 				}
 				Ok(result)
 			},
-			Err(e) => {
-				dbg!(e);
+			Err(_) => {
+				eprintln!("Parse playlist failed");
 				Err(Error::from(ErrorKind::ParseError(String::from(""))))
 			}
 		}
@@ -144,8 +139,8 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 				let uri = format!("{}", v.variants[0].uri);
 				Ok(uri)
 			},
-			Err(e) => {
-				dbg!(e);
+			Err(_) => {
+				eprintln!("Parse playlist failed");
 				Err(Error::from(ErrorKind::ParseError(String::from(""))))
 			}
 		}
