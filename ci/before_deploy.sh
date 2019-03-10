@@ -1,8 +1,6 @@
 # This script takes care of building your crate and packaging it for release
 
 main() {
-	export RELEASE_NAME=`date +%m.%d`"."`echo $TRAVIS_COMMIT | cut -c 1-16`
-
 	local stage=
 
 	case $TRAVIS_OS_NAME in
