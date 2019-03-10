@@ -76,13 +76,16 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	};
 	let token_url = format!("{}api/channels/{}/access_token?{}", API_URL, name, token_param);
 
-	dbg!("Start fetch access_token");
-	dbg!(format!("{}", token_url));
+	#[cfg(debug_assertions)]
+	println!("Start fetch access_token: {}", token_url);
+
 	let mut token_req = Fetch::new(&handle);
 	token_req.set_url(token_url);
 	
 	let req = token_req.exec().and_then(move |res| {
-		dbg!("Fetched access_token");
+		#[cfg(debug_assertions)]
+		println!("Fetched access_token");
+
 		match serde_json::from_str(std::str::from_utf8(&res).unwrap()) {
 			Ok(parsed) => {
 				let parsed: serde_json::Value = parsed;
@@ -123,10 +126,14 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	let mut list_req = Fetch::new(&handle);
 
 	let req = req.and_then(move |res| {
-		dbg!("Start fetch playlist");
+		#[cfg(debug_assertions)]
+		println!("Start fetch playlist");
+
 		list_req.set_url(res);
 		list_req.exec().and_then(move |res2| {
-			dbg!("Fetched playlist");
+			#[cfg(debug_assertions)]
+			println!("Fetched playlist");
+
 			Ok(res2)
 		})
 	});
@@ -135,7 +142,9 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 		let prs = m3u8_rs::parse_master_playlist_res(&res);
 		match prs {
 			Ok(v) => {
-				dbg!("Parsed playlist");
+				#[cfg(debug_assertions)]
+				println!("Parsed playlist");
+
 				// Use first variant
 				let uri = format!("{}", v.variants[0].uri);
 				Ok(uri)

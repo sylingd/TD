@@ -48,12 +48,18 @@ impl Manager {
 				Ok(v) => {
 					if !v.is_empty() {
 						let output = format!("{}/{}_{}", output_dir, Local::now().format("%m%d_%H_%M_%S"), if name.is_empty() { channel } else { name });
-						dbg!("Create download directory");
+
+						#[cfg(debug_assertions)]
+						println!("Create download directory");
+
 						let path = Path::new(output.as_str());
 						if !path.exists() {
 							fs::create_dir_all(path).unwrap();
 						}
-						dbg!("Created");
+
+						#[cfg(debug_assertions)]
+						println!("Created");
+
 						sender.send(ManageMessage::LIST(output, v)).unwrap();
 					}
 				}
@@ -120,7 +126,8 @@ impl Manager {
 		let t_c = self.thread.clone();
 		let t_downloaded = self.downloaded.clone();
 		let t_self = mpsc::Sender::clone(&tx);
-		dbg!("Create download thread");
+		#[cfg(debug_assertions)]
+		println!("Create download thread");
 		thread::spawn(move || {
 			{
 				let mut tc = t_c.lock().unwrap();
@@ -141,7 +148,9 @@ impl Manager {
 							let req = twitch::download(core.handle(), v3.clone());
 							match core.run(req) {
 								Ok(res) => {
-									dbg!(format!("Downloaded {}", v2));
+									#[cfg(debug_assertions)]
+									println!("Downloaded {}", v2);
+
 									let write_to = format!("{}/{}", v1, v2);
 									fs::write(write_to, res).unwrap();
 									{
@@ -188,7 +197,9 @@ impl Manager {
 		}
 	}
 	pub fn add_download(&mut self, output: String, name: String, url: String) {
-		dbg!("Add download mission");
+		#[cfg(debug_assertions)]
+		println!("Add download mission");
+
 		// Try to get a free thread
 		let message = ManageMessage::MEDIA(output, name, url);
 		let mut found_t = None;
