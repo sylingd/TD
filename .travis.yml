@@ -1,6 +1,4 @@
-dist: trusty
 services: docker
-sudo: required
 
 language: rust
 rust:
@@ -14,12 +12,15 @@ matrix:
   include:
     # Linux
     - env: TARGET=x86_64-unknown-linux-gnu
+      dist: precise
     - env: TARGET=x86_64-unknown-linux-musl
+      dist: precise
     # OSX
     - env: TARGET=x86_64-apple-darwin
       os: osx
     # Windows
     - env: TARGET=x86_64-pc-windows-gnu
+      dist: xenial
 
 notifications:
   email: false
