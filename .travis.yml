@@ -1,31 +1,29 @@
+dist: trusty
+language: rust
+services: docker
+sudo: required
+
 env:
   global:
     - CRATE_NAME=twitchdl
-language: generic
 
 matrix:
   include:
-    # Note: apt packages are the C cross compiler and the cross compiled C library
-    - env: TARGET=aarch64-unknown-linux-gnu
-      dist: trusty
-      sudo: required
-    - env: TARGET=i686-unknown-linux-musl
-      addons:
-        apt:
-          packages: &i686
-            - gcc-multilib
+
+    # Linux
     - env: TARGET=i686-unknown-linux-gnu
-      addons:
-        apt:
-          packages: *i686
+    - env: TARGET=i686-unknown-linux-musl
+    - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-musl
+
+    # OSX
+    - env: TARGET=i686-apple-darwin
+      os: osx
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+
+    # Windows
     - env: TARGET=x86_64-pc-windows-gnu
-      dist: trusty
-      sudo: required
-      addons:
-        apt:
-          packages:
-            - gcc-mingw-w64
 
 notifications:
   email: false
@@ -34,18 +32,23 @@ branches:
   only:
     - master
 
+before_install:
+  - set -e
+  - rustup self update
+
 install:
-  - export PATH="$PATH:$HOME/.cargo/bin"
-  - bash build/install.sh
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
 
 script:
-  - bash build/build.sh
+  - bash ci/build.sh
 
 after_success:
-  - files=$(ls target)
+  - files=$(ls target/$TARGET/release)
   - echo $files
-  - files=$(ls target/$TARGET/)
-  - echo $files
+
+# before_deploy:
+#   - sh ci/before_deploy.sh
 
 # before_deploy:
 #   - export RELEASE_NAME=`date +%m.%d`"."`echo $TRAVIS_COMMIT | cut -c 1-16`
