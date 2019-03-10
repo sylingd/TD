@@ -2,7 +2,7 @@ use std::fs;
 use std::thread;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
-use std::sync::{mpsc::{self, Sender, Receiver, TryRecvError}, Arc, Mutex};
+use std::sync::{mpsc::{self, Sender, Receiver}, Arc, Mutex};
 
 use tokio_core::reactor::Core;
 use chrono::offset::Local;
