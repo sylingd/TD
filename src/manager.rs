@@ -187,6 +187,7 @@ impl Manager {
 								break;
 							}
 						}
+						thread::sleep(Duration::from_secs(1));
 					}
 				}
 			}
