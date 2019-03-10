@@ -48,7 +48,7 @@ impl Fetch {
 		easy.follow_location(true).unwrap();
 		easy.show_header(false).unwrap();
 		easy.timeout(Duration::new(20, 0)).unwrap();
-		
+
 		let result = Arc::new(Mutex::new(Vec::new()));
 		let write_result = result.clone();
 		easy.write_function(move |data| {
@@ -56,7 +56,6 @@ impl Fetch {
 			Ok(data.len())
 		}).unwrap();
 
-		// Result<(Easy, Arc<Mutex<Vec<u8>>>), Error>
 		let request = Ok((easy, result));
 		let request = FuResult(request);
 

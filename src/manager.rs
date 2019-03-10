@@ -23,8 +23,10 @@ struct DownloadThread {
 }
 
 pub struct Manager {
-	downloaded: Arc<Mutex<Vec<String>>>,
+	queued: Arc<Mutex<Vec<String>>>,
 	thread: Arc<Mutex<u16>>,
+	total: Arc<Mutex<u64>>,
+	downloaded: Arc<Mutex<u64>>,
 	sender: Sender<ManageMessage>,
 	receiver: Arc<Mutex<Receiver<ManageMessage>>>,
 	download_threads: Vec<DownloadThread>,
@@ -67,7 +69,8 @@ impl Manager {
 	}
 	pub fn start_list(&self, output: String, url: String) {
 		let t_c = self.thread.clone();
-		let t_downloaded = self.downloaded.clone();
+		let t_queued = self.queued.clone();
+		let t_total = self.total.clone();
 		let sender = mpsc::Sender::clone(&self.sender);
 		thread::spawn(move || {
 			{
@@ -81,12 +84,16 @@ impl Manager {
 				match core.run(req) {
 					Ok(res) => {
 						retry = 0;
-						let mut downloaded = t_downloaded.lock().unwrap();
+						let mut queued = t_queued.lock().unwrap();
 						for (time, d, u) in res {
-							if !downloaded.contains(&u) {
-								downloaded.push(u.clone());
+							if !queued.contains(&u) {
+								queued.push(u.clone());
 								let name = format!("{}_{}.ts", time, d);
 								sender.send(ManageMessage::MEDIA(output.clone(), name, u)).unwrap();
+								{
+									let mut tt = t_total.lock().unwrap();
+									*tt += 1;
+								}
 							}
 						}
 					},
@@ -111,6 +118,7 @@ impl Manager {
 		let busy = Arc::new(Mutex::new(false));
 		let t_busy = busy.clone();
 		let t_c = self.thread.clone();
+		let t_downloaded = self.downloaded.clone();
 		let t_self = mpsc::Sender::clone(&tx);
 		dbg!("Create download thread");
 		thread::spawn(move || {
@@ -136,6 +144,10 @@ impl Manager {
 									dbg!(format!("Downloaded {}", v2));
 									let write_to = format!("{}/{}", v1, v2);
 									fs::write(write_to, res).unwrap();
+									{
+										let mut td = t_downloaded.lock().unwrap();
+										*td += 1;
+									}
 								},
 								Err(e) => {
 									// Download failed, retry
@@ -239,11 +251,21 @@ impl Manager {
 	pub fn get_thread(&self) -> u16 {
 		*(self.thread.lock().unwrap())
 	}
+	#[cfg(not(debug_assertions))]
+	pub fn get_downloaded(&self) -> u64 {
+		*(self.downloaded.lock().unwrap())
+	}
+	#[cfg(not(debug_assertions))]
+	pub fn get_total(&self) -> u64 {
+		*(self.total.lock().unwrap())
+	}
 	pub fn new() -> Arc<Mutex<Self>> {
 		let (tx, rx) = mpsc::channel();
 		let res = Arc::new(Mutex::new(Manager {
-			downloaded: Arc::new(Mutex::new(Vec::new())),
+			queued: Arc::new(Mutex::new(Vec::new())),
 			thread: Arc::new(Mutex::new(0)),
+			total: Arc::new(Mutex::new(0)),
+			downloaded: Arc::new(Mutex::new(0)),
 			sender: tx,
 			receiver: Arc::new(Mutex::new(rx)),
 			download_threads: Vec::new(),

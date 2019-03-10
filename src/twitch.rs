@@ -77,6 +77,7 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	let token_url = format!("{}api/channels/{}/access_token?{}", API_URL, name, token_param);
 
 	dbg!("Start fetch access_token");
+	dbg!(format!("{}", token_url));
 	let mut token_req = Fetch::new(&handle);
 	token_req.set_url(token_url);
 	

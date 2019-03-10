@@ -4,9 +4,12 @@ extern crate getopts;
 extern crate serde_json;
 extern crate tokio_core;
 extern crate rand;
+extern crate indicatif;
 
-use std::{env, io::{self, Write}};
+use std::{env, io, time, thread};
+
 use getopts::{Options, Matches};
+
 use manager::Manager;
 
 mod curl;
@@ -36,15 +39,17 @@ fn main() {
 	let mut output_dir = get_arg(&matches, "d");
 	if output_dir == "" {
 		output_dir = String::new();
-		io::stdout().write(b"Input output directory, end without '/': ").unwrap();
+		println!("Input output directory, end without '/': ");
 		io::stdin().read_line(&mut output_dir).unwrap();
+		output_dir = String::from(output_dir.trim());
 	}
 
 	let mut token = get_arg(&matches, "t");
 	if token == "" && !has_opt {
 		token = String::new();
-		io::stdout().write(b"Input OAuth Token (optional): ").unwrap();
+		println!("Input OAuth Token (optional): ");
 		io::stdin().read_line(&mut token).unwrap();
+		token = String::from(token.trim());
 	}
 
 	let mut mode = get_arg(&matches, "m");
@@ -56,6 +61,7 @@ fn main() {
 		println!(" * 3 : Auto All Access Pass mode");
 		println!("Choose mode (default is 1): ");
 		io::stdin().read_line(&mut mode).unwrap();
+		mode = String::from(mode.trim());
 	}
 	let mode: u8 = mode.parse().unwrap_or(1);
 
@@ -66,8 +72,9 @@ fn main() {
 				println!(" * {} : {}", i, channels[i].name);
 			}
 			let mut channel_index = String::new();
-			print!("Choose channel(s), separated by ',': ");
+			println!("Choose channel(s), separated by ',': ");
 			io::stdin().read_line(&mut channel_index).unwrap();
+			channel_index = String::from(channel_index.trim());
 			if channel_index.contains(",") {
 				let split_channels = channel_index.split(",");
 				for index in split_channels {
@@ -95,8 +102,9 @@ fn main() {
 		let mut channels = get_arg(&matches, "c");
 		if channels == "" {
 			channels = String::new();
-			print!("Input channel name(s), separated by ',': ");
+			println!("Input channel name(s), separated by ',': ");
 			io::stdin().read_line(&mut channels).unwrap();
+			channels = String::from(channels.trim());
 		}
 		if channels.contains(",") {
 			let split_channels = channels.split(",");
@@ -108,13 +116,51 @@ fn main() {
 		}
 	}
 
-	loop {
-		let cnt = manager.lock().unwrap().get_thread();
-		if cnt > 0 {
-			std::thread::sleep(std::time::Duration::from_secs(2));
-		} else {
-			break;
+	#[cfg(debug_assertions)]
+	{
+		loop {
+			let cnt = manager.lock().unwrap().get_thread();
+			if cnt > 0 {
+				thread::sleep(time::Duration::from_secs(1));
+			} else {
+				break;
+			}
 		}
+	}
+
+	#[cfg(not(debug_assertions))]
+	{
+		use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+
+		let m = MultiProgress::new();
+		let sty = ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}").progress_chars("##-");
+
+		let pb1 = m.add(ProgressBar::new(10));
+		pb1.set_style(sty.clone());
+		let pb2 = m.add(ProgressBar::new(10));
+		pb2.set_style(sty.clone());
+
+		thread::spawn(move || {
+			loop {
+				let cnt = manager.lock().unwrap().get_thread();
+				if cnt > 0 {
+					thread::sleep(time::Duration::from_secs(1));
+
+					pb1.set_length(u64::from(cnt));
+					pb1.set_position(u64::from(cnt));
+					pb1.set_message(&format!("thread {}", cnt));
+
+					let total = manager.lock().unwrap().get_total();
+					let downloaded = manager.lock().unwrap().get_downloaded();
+					pb2.set_length(total);
+					pb2.set_position(downloaded);
+					pb2.set_message(&format!("{}/{}", downloaded, total));
+				} else {
+					break;
+				}
+			}
+		});
+		m.join_and_clear().unwrap();
 	}
 }
 
