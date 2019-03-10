@@ -31,6 +31,11 @@ branches:
 cache: cargo
 
 before_cache:
+  - rm -rfv target/$TARGET/debug/incremental/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/debug/.fingerprint/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/debug/build/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/debug/deps/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/debug/$CRATE_NAME.d
   - rm -rfv target/$TARGET/release/incremental/$CRATE_NAME-*
   - rm -rfv target/$TARGET/release/.fingerprint/$CRATE_NAME-*
   - rm -rfv target/$TARGET/release/build/$CRATE_NAME-*
