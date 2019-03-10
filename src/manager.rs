@@ -104,7 +104,9 @@ impl Manager {
 						}
 					},
 					Err(e) => {
-						eprintln!("Fetch list failed: {}", e);
+						#[cfg(debug_assertions)]
+						println!("Fetch list failed: {}", e);
+
 						retry += 1;
 						if retry > 3 {
 							break;
@@ -160,7 +162,9 @@ impl Manager {
 								},
 								Err(e) => {
 									// Download failed, retry
-									eprintln!("Download {} failed: {}", v3, e);
+									#[cfg(debug_assertions)]
+									println!("Download {} failed: {}", v3, e);
+
 									t_self.send(ManageMessage::MEDIA(v1, v2, v3)).unwrap();
 								}
 							}

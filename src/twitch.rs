@@ -46,7 +46,9 @@ pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 				Ok(result)
 			},
 			Err(_) => {
-				eprintln!("Parse playlist failed");
+				#[cfg(debug_assertions)]
+				println!("Parse playlist failed");
+
 				Err(Error::from(ErrorKind::ParseError(String::from(""))))
 			}
 		}
@@ -150,7 +152,9 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 				Ok(uri)
 			},
 			Err(_) => {
-				eprintln!("Parse playlist failed");
+				#[cfg(debug_assertions)]
+				println!("Parse playlist failed");
+
 				Err(Error::from(ErrorKind::ParseError(String::from(""))))
 			}
 		}
