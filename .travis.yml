@@ -39,7 +39,6 @@ before_cache:
   - cargo clean -p $CRATE_NAME
 
 before_install:
-  - set -e
   - rustup self update
 
 install:
