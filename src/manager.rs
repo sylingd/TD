@@ -11,13 +11,16 @@ use rand::Rng;
 use super::twitch;
 
 enum ManageMessage {
+	// thread id
+	ThreadExit(u16),
 	// output url
-	LIST(String, String),
+	List(String, String),
 	// output name url
-	MEDIA(String, String, String)
+	Media(String, String, String)
 }
 
 struct DownloadThread {
+	id: u16,
 	busy: Arc<Mutex<bool>>,
 	sender: Sender<ManageMessage>
 }
@@ -40,7 +43,7 @@ impl Manager {
 			let mut tc = tc.lock().unwrap();
 			*tc += 1;
 		}
-		let sender = mpsc::Sender::clone(&self.sender);
+		let manage_sender = mpsc::Sender::clone(&self.sender);
 		thread::spawn(move || {
 			let mut core = Core::new().unwrap();
 			let req = twitch::channel(core.handle(), channel.clone(), token);
@@ -60,7 +63,7 @@ impl Manager {
 						#[cfg(debug_assertions)]
 						println!("Created");
 
-						sender.send(ManageMessage::LIST(output, v)).unwrap();
+						manage_sender.send(ManageMessage::List(output, v)).unwrap();
 					}
 				}
 				Err(e) => {
@@ -77,7 +80,7 @@ impl Manager {
 		let t_c = self.thread.clone();
 		let t_queued = self.queued.clone();
 		let t_total = self.total.clone();
-		let sender = mpsc::Sender::clone(&self.sender);
+		let manage_sender = mpsc::Sender::clone(&self.sender);
 		thread::spawn(move || {
 			{
 				let mut tc = t_c.lock().unwrap();
@@ -95,7 +98,7 @@ impl Manager {
 							if !queued.contains(&u) {
 								queued.push(u.clone());
 								let name = format!("{}_{}.ts", time, d);
-								sender.send(ManageMessage::MEDIA(output.clone(), name, u)).unwrap();
+								manage_sender.send(ManageMessage::Media(output.clone(), name, u)).unwrap();
 								{
 									let mut tt = t_total.lock().unwrap();
 									*tt += 1;
@@ -128,6 +131,22 @@ impl Manager {
 		let t_c = self.thread.clone();
 		let t_downloaded = self.downloaded.clone();
 		let t_self = mpsc::Sender::clone(&tx);
+		let manage_sender = mpsc::Sender::clone(&self.sender);
+		// Generate id
+		let mut id: u16 = 0;
+		loop {
+			let mut can_use = true;
+			for t in self.download_threads.iter() {
+				if t.id == id {
+					can_use = false;
+					break;
+				}
+			}
+			if can_use {
+				break;
+			}
+			id = rand::thread_rng().gen_range(u16::min_value(), u16::max_value());
+		}
 		#[cfg(debug_assertions)]
 		println!("Create download thread");
 		thread::spawn(move || {
@@ -135,13 +154,12 @@ impl Manager {
 				let mut tc = t_c.lock().unwrap();
 				*tc += 1;
 			}
-			let mut last_wakeup = SystemTime::now();
 			let mut core = Core::new().unwrap();
 			loop {
 				// Try to receive any message
-				match receiver.try_recv() {
+				match receiver.recv_timeout(Duration::from_secs(60)) {
 					Ok(message) => {
-						if let ManageMessage::MEDIA(v1, v2, v3) = message {
+						if let ManageMessage::Media(v1, v2, v3) = message {
 							{
 								let mut tb = t_busy.lock().unwrap();
 								*tb = true;
@@ -165,38 +183,28 @@ impl Manager {
 									#[cfg(debug_assertions)]
 									println!("Download {} failed: {}", v3, e);
 
-									t_self.send(ManageMessage::MEDIA(v1, v2, v3)).unwrap();
+									t_self.send(ManageMessage::Media(v1, v2, v3)).unwrap();
 								}
 							}
-							// Update timeout
-							last_wakeup = SystemTime::now();
 							{
 								let mut tb = t_busy.lock().unwrap();
 								*tb = false;
 							}
 						}
 					},
-					Err(TryRecvError::Disconnected) => {
+					Err(_) => {
 						break;
-					},
-					Err(TryRecvError::Empty) => {
-						// Check timeout
-						if let Ok(duration) = SystemTime::now().duration_since(last_wakeup) {
-							if duration.as_secs() > 60 {
-								// Not wakeup for a longtime, exit
-								break;
-							}
-						}
-						thread::sleep(Duration::from_secs(1));
 					}
 				}
 			}
 			{
+				manage_sender.send(ManageMessage::ThreadExit(id)).unwrap();
 				let mut tc = t_c.lock().unwrap();
 				*tc -= 1;
 			}
 		});
 		DownloadThread {
+			id: id,
 			busy: busy,
 			sender: tx
 		}
@@ -206,7 +214,7 @@ impl Manager {
 		println!("Add download mission");
 
 		// Try to get a free thread
-		let message = ManageMessage::MEDIA(output, name, url);
+		let message = ManageMessage::Media(output, name, url);
 		let mut found_t = None;
 		for t in self.download_threads.iter() {
 			if let Ok(ref mut mutex) = t.busy.try_lock() {
@@ -222,6 +230,7 @@ impl Manager {
 			},
 			None => {
 				let current = SystemTime::now();
+				// Prevent create too many threads
 				if self.download_threads.len() <= 1 || current.duration_since(self.create_timer).unwrap().as_secs() > 1 {
 					// Create a new download thread
 					let t = self.start_download();
@@ -241,11 +250,20 @@ impl Manager {
 			loop {
 				let message = rec.lock().unwrap().recv().unwrap();
 				match message {
-					ManageMessage::LIST(v1, v2) => {
+					ManageMessage::List(v1, v2) => {
 						this.lock().unwrap().start_list(v1, v2);
 					}
-					ManageMessage::MEDIA(v1, v2, v3) => {
+					ManageMessage::Media(v1, v2, v3) => {
 						this.lock().unwrap().add_download(v1, v2, v3);
+					}
+					ManageMessage::ThreadExit(id) => {
+						let mut that = this.lock().unwrap();
+						for i in 0..that.download_threads.len() - 1 {
+							if that.download_threads[i].id == id {
+								that.download_threads.remove(i);
+								break;
+							}
+						}
 					}
 				}
 			}
