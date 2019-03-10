@@ -2,12 +2,12 @@ extern crate futures;
 extern crate tokio_core;
 extern crate chrono;
 
+use std::fs;
 use std::thread;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 use std::sync::{mpsc::{self, Sender, Receiver, TryRecvError}, Arc, Mutex};
 
-use futures::Future;
 use tokio_core::reactor::Core;
 use chrono::offset::Local;
 
@@ -48,15 +48,17 @@ impl Manager {
 				Ok(v) => {
 					if !v.is_empty() {
 						let output = format!("{}/{}_{}", output_dir, Local::now().format("%m%d_%H_%M_%S"), if name.is_empty() { channel } else { name });
+						dbg!("Create download directory");
 						let path = Path::new(output.as_str());
 						if !path.exists() {
-							core.run(tokio_fs::create_dir_all(path)).unwrap();
+							fs::create_dir_all(path).unwrap();
 						}
+						dbg!("Created");
 						sender.send(ManageMessage::LIST(output, v)).unwrap();
 					}
 				}
 				Err(e) => {
-					println!("{}", e);
+					dbg!(e);
 				}
 			};
 			{
@@ -91,7 +93,7 @@ impl Manager {
 						}
 					},
 					Err(e) => {
-						println!("{}", e);
+						dbg!(e);
 						retry += 1;
 						if retry > 3 {
 							break;
@@ -129,12 +131,16 @@ impl Manager {
 							}
 							// Download
 							let req = twitch::download(core.handle(), v3);
-							let req = req.and_then(move |res| {
-								// write to file
-								let write_to = format!("{}/{}", v1, v2);
-								tokio_fs::write(write_to, res).map_err(From::from)
-							});
-							core.run(req).unwrap();
+							match core.run(req) {
+								Ok(res) => {
+									dbg!(format!("Downloaded {}", v2));
+									let write_to = format!("{}/{}", v1, v2);
+									fs::write(write_to, res).unwrap();
+								},
+								Err(e) => {
+									dbg!(e);
+								}
+							}
 							// Update timeout
 							last_wakeup = SystemTime::now();
 							{
@@ -215,7 +221,7 @@ impl Manager {
 				Some(v)
 			}
 			Err(e) => {
-				println!("{}", e);
+				dbg!(e);
 				None
 			}
 		}

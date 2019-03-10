@@ -51,7 +51,7 @@ pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 				Ok(result)
 			},
 			Err(e) => {
-				println!("Error: {:?}", e);
+				dbg!(e);
 				Err(Error::from(ErrorKind::ParseError(String::from(""))))
 			}
 		}
@@ -81,12 +81,12 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	};
 	let token_url = format!("{}api/channels/{}/access_token?{}", API_URL, name, token_param);
 
-	println!("Start fetch access_token");
+	dbg!("Start fetch access_token");
 	let mut token_req = Fetch::new(&handle);
 	token_req.set_url(token_url);
 	
 	let req = token_req.exec().and_then(move |res| {
-		println!("Fetch access_token");
+		dbg!("Fetched access_token");
 		match serde_json::from_str(std::str::from_utf8(&res).unwrap()) {
 			Ok(parsed) => {
 				let parsed: serde_json::Value = parsed;
@@ -127,9 +127,10 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	let mut list_req = Fetch::new(&handle);
 
 	let req = req.and_then(move |res| {
-		println!("Start fetch playlist");
+		dbg!("Start fetch playlist");
 		list_req.set_url(res);
 		list_req.exec().and_then(move |res2| {
+			dbg!("Fetched playlist");
 			Ok(res2)
 		})
 	});
@@ -138,12 +139,13 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 		let prs = m3u8_rs::parse_master_playlist_res(&res);
 		match prs {
 			Ok(v) => {
+				dbg!("Parsed playlist");
 				// Use first variant
 				let uri = format!("{}", v.variants[0].uri);
 				Ok(uri)
 			},
 			Err(e) => {
-				println!("{:?}", e);
+				dbg!(e);
 				Err(Error::from(ErrorKind::ParseError(String::from(""))))
 			}
 		}
