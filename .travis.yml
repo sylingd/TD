@@ -1,7 +1,10 @@
 dist: trusty
-language: rust
 services: docker
 sudo: required
+
+language: rust
+rust:
+  - beta
 
 env:
   global:
@@ -25,6 +28,16 @@ branches:
   only:
     - master
 
+cache: cargo
+
+before_cache:
+  - rm -rfv target/$TARGET/release/incremental/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/release/.fingerprint/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/release/build/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/release/deps/$CRATE_NAME-*
+  - rm -rfv target/$TARGET/release/$CRATE_NAME.d
+  - cargo clean -p $CRATE_NAME
+
 before_install:
   - set -e
   - rustup self update
@@ -41,7 +54,7 @@ after_success:
   - echo $files
 
 before_deploy:
-  - sh ci/before_deploy.sh
+  - bash ci/before_deploy.sh
 
 deploy:
   name: $RELEASE_NAME
