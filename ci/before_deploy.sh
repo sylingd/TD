@@ -1,33 +1,32 @@
 # This script takes care of building your crate and packaging it for release
 
-set -ex
-
 main() {
-    local src=$(pwd) \
-          stage=
+	export RELEASE_NAME=`date +%m.%d`"."`echo $TRAVIS_COMMIT | cut -c 1-16`
 
-    case $TRAVIS_OS_NAME in
-        linux)
-            stage=$(mktemp -d)
-            ;;
-        osx)
-            stage=$(mktemp -d -t tmp)
-            ;;
-    esac
+	local stage=
 
-    test -f Cargo.lock || cargo generate-lockfile
+	case $TRAVIS_OS_NAME in
+		linux)
+			stage=$(mktemp -d)
+			;;
+		osx)
+			stage=$(mktemp -d -t tmp)
+			;;
+	esac
 
-    # TODO Update this to build the artifacts that matter to you
-    cross rustc --bin hello --target $TARGET --release -- -C lto
+	if [[ "$TARGET" =~ "windows" ]]; then
+		cp target/$TARGET/release/$CRATE_NAME.exe $stage/
+	else
+		cp target/$TARGET/release/$CRATE_NAME $stage/
+	fi
 
-    # TODO Update this to package the right artifacts
-    cp target/$TARGET/release/hello $stage/
+	cd $stage
+	zip $TRAVIS_BUILD_DIR/$CRATE_NAME-$TARGET.zip *
+	cd $TRAVIS_BUILD_DIR
 
-    cd $stage
-    tar czf $src/$CRATE_NAME-$TRAVIS_TAG-$TARGET.tar.gz *
-    cd $src
+	git tag $RELEASE_NAME
 
-    rm -rf $stage
+	rm -rf $stage
 }
 
 main
