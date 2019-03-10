@@ -137,8 +137,10 @@ fn main() {
 
 		let pb1 = m.add(ProgressBar::new(10));
 		pb1.set_style(sty.clone());
+		pb1.set_message("Threads");
 		let pb2 = m.add(ProgressBar::new(10));
 		pb2.set_style(sty.clone());
+		pb2.set_message("D / T");
 
 		thread::spawn(move || {
 			loop {
@@ -148,13 +150,9 @@ fn main() {
 
 					pb1.set_length(u64::from(cnt));
 					pb1.set_position(u64::from(cnt));
-					pb1.set_message(&format!("thread {}", cnt));
 
-					let total = manager.lock().unwrap().get_total();
-					let downloaded = manager.lock().unwrap().get_downloaded();
-					pb2.set_length(total);
-					pb2.set_position(downloaded);
-					pb2.set_message(&format!("{}/{}", downloaded, total));
+					pb2.set_length(manager.lock().unwrap().get_total());
+					pb2.set_position(manager.lock().unwrap().get_downloaded());
 				} else {
 					break;
 				}
