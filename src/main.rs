@@ -156,7 +156,7 @@ fn main() {
 				if cnt > 0 || dcnt > 0 {
 					thread::sleep(time::Duration::from_secs(1));
 
-					pb1.set_length(u64::from(cnt + dcnt));
+					pb1.set_length(u64::from(cnt) + dcnt);
 					pb1.set_position(dcnt);
 
 					pb2.set_length(manager.lock().unwrap().get_total());
