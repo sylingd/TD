@@ -108,9 +108,9 @@ impl Manager {
 							}
 						}
 					},
-					Err(e) => {
+					Err(_e) => {
 						#[cfg(debug_assertions)]
-						println!("Fetch list failed: {}", e);
+						println!("Fetch list failed: {}", _e);
 
 						retry += 1;
 						if retry > 3 {
@@ -176,10 +176,10 @@ impl Manager {
 										*td += 1;
 									}
 								},
-								Err(e) => {
+								Err(_e) => {
 									// Download failed, retry
 									#[cfg(debug_assertions)]
-									println!("Download {} failed: {}", v3, e);
+									dbg!(_e);
 
 									t_self.send(ManageMessage::Media(v1, v2, v3)).unwrap();
 								}
@@ -235,8 +235,11 @@ impl Manager {
 		}
 		if let Some(t) = found_t {
 			let res = t.sender.send(message);
-			if res.is_err() {
-				self.add_download(output, name, url);
+			if let Some(_e) = res.err() {
+				#[cfg(debug_assertions)]
+				dbg!(_e);
+
+				self.sender.send(ManageMessage::Media(output.clone(), name.clone(), url.clone())).unwrap();
 			}
 		}
 	}
