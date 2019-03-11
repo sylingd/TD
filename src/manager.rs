@@ -192,11 +192,15 @@ impl Manager {
 		let t_list_queue = this.lock().unwrap().list_queue.clone();
 		builder.spawn(move || {
 			let mut last_count = 0;
+			let mut last_create = SystemTime::now();
 			loop {
 				if let Ok(queue) = t_download_queue.lock() {
-					if queue.len() - last_count > 10 {
-						last_count = queue.len();
-						this.lock().unwrap().create_download();
+					if let Ok(past) = SystemTime::now().duration_since(last_create) {
+						if past.as_secs() > 3 && queue.len() - last_count > 10 {
+							last_count = queue.len();
+							last_create = SystemTime::now();
+							this.lock().unwrap().create_download();
+						}
 					}
 				}
 				if let Ok(mut list_queue) = t_list_queue.lock() {
