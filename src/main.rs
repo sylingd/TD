@@ -143,7 +143,8 @@ fn main() {
 		pb2.set_style(sty.clone());
 		pb2.set_message("D / Total");
 
-		thread::spawn(move || {
+		let builder = thread::Builder::new().name("MainDisplay".into());
+		builder.spawn(move || {
 			loop {
 				let dcnt = manager.lock().unwrap().get_download_thread();
 				#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
@@ -165,7 +166,7 @@ fn main() {
 					break;
 				}
 			}
-		});
+		}).unwrap();
 		m.join_and_clear().unwrap();
 	}
 }

@@ -44,7 +44,8 @@ impl Manager {
 			*tc += 1;
 		}
 		let manage_sender = mpsc::Sender::clone(&self.sender);
-		thread::spawn(move || {
+		let builder = thread::Builder::new().name(format!("Init {}", channel));
+		builder.spawn(move || {
 			let mut core = Core::new().unwrap();
 			let req = twitch::channel(core.handle(), channel.clone(), token);
 			match core.run(req) {
@@ -74,14 +75,15 @@ impl Manager {
 				let mut tc = tc.lock().unwrap();
 				*tc -= 1;
 			}
-		});
+		}).unwrap();
 	}
 	pub fn start_list(&self, output: String, url: String) {
 		let t_c = self.thread.clone();
 		let t_queued = self.queued.clone();
 		let t_total = self.total.clone();
 		let manage_sender = mpsc::Sender::clone(&self.sender);
-		thread::spawn(move || {
+		let builder = thread::Builder::new().name(format!("List {}", output));
+		builder.spawn(move || {
 			{
 				let mut tc = t_c.lock().unwrap();
 				*tc += 1;
@@ -122,7 +124,7 @@ impl Manager {
 				let mut tc = t_c.lock().unwrap();
 				*tc -= 1;
 			}
-		});
+		}).unwrap();
 	}
 	fn start_download(&mut self) -> DownloadThread {
 		let (tx, receiver) = mpsc::channel();
@@ -148,7 +150,8 @@ impl Manager {
 		}
 		#[cfg(debug_assertions)]
 		println!("Create download thread");
-		thread::spawn(move || {
+		let builder = thread::Builder::new().name(format!("Download {}", id));
+		builder.spawn(move || {
 			let mut core = Core::new().unwrap();
 			loop {
 				// Try to receive any message
@@ -193,7 +196,7 @@ impl Manager {
 				}
 			}
 			manage_sender.send(ManageMessage::ThreadExit(id)).unwrap();
-		});
+		}).unwrap();
 		DownloadThread {
 			id: id,
 			busy: busy,
@@ -239,7 +242,8 @@ impl Manager {
 	}
 	pub fn start(this: Arc<Mutex<Self>>) {
 		let rec = this.lock().unwrap().receiver.clone();
-		thread::spawn(move || {
+		let builder = thread::Builder::new().name("Manage".into());
+		builder.spawn(move || {
 			loop {
 				let message = rec.lock().unwrap().recv().unwrap();
 				match message {
@@ -260,7 +264,7 @@ impl Manager {
 					}
 				}
 			}
-		});
+		}).unwrap();
 	}
 	pub fn get_all_access_channels(&self) -> Option<Vec<twitch::OwlChannel>> {
 		let mut core = Core::new().unwrap();
