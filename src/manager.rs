@@ -97,7 +97,7 @@ impl Manager {
 							if !queued.contains(&u) {
 								queued.push(u.clone());
 								let name = format!("{}_{}.ts", time, d);
-								t_download_queue.lock().unwrap().push(DownloadMedia {
+								t_download_queue.lock().unwrap().insert(0, DownloadMedia {
 									output: info.output.clone(),
 									name: name,
 									url: u
