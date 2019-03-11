@@ -128,7 +128,6 @@ impl Manager {
 		let (tx, receiver) = mpsc::channel();
 		let busy = Arc::new(Mutex::new(false));
 		let t_busy = busy.clone();
-		let t_c = self.thread.clone();
 		let t_downloaded = self.downloaded.clone();
 		let t_self = mpsc::Sender::clone(&tx);
 		let manage_sender = mpsc::Sender::clone(&self.sender);
@@ -150,10 +149,6 @@ impl Manager {
 		#[cfg(debug_assertions)]
 		println!("Create download thread");
 		thread::spawn(move || {
-			{
-				let mut tc = t_c.lock().unwrap();
-				*tc += 1;
-			}
 			let mut core = Core::new().unwrap();
 			loop {
 				// Try to receive any message
@@ -197,11 +192,6 @@ impl Manager {
 					}
 				}
 			}
-			{
-				manage_sender.send(ManageMessage::ThreadExit(id)).unwrap();
-				let mut tc = t_c.lock().unwrap();
-				*tc -= 1;
-			}
 		});
 		DownloadThread {
 			id: id,
@@ -214,33 +204,35 @@ impl Manager {
 		println!("Add download mission");
 
 		// Try to get a free thread
-		let message = ManageMessage::Media(output, name, url);
+		let message = ManageMessage::Media(output.clone(), name.clone(), url.clone());
 		let mut found_t = None;
 		for t in self.download_threads.iter() {
-			if let Ok(ref mut mutex) = t.busy.try_lock() {
-				if **mutex == false {
+			if let Ok(busy) = t.busy.try_lock() {
+				if *busy == false {
 					found_t = Some(t);
 					break;
 				}
 			}
 		}
-		match found_t {
-			Some(t) => {
+		if let None = found_t {
+			let current = SystemTime::now();
+			// Prevent create too many threads
+			if self.download_threads.len() <= 1 || current.duration_since(self.create_timer).unwrap().as_secs() > 1 {
+				// Create a new download thread
+				let t = self.start_download();
 				t.sender.send(message).unwrap();
-			},
-			None => {
-				let current = SystemTime::now();
-				// Prevent create too many threads
-				if self.download_threads.len() <= 1 || current.duration_since(self.create_timer).unwrap().as_secs() > 1 {
-					// Create a new download thread
-					let t = self.start_download();
-					t.sender.send(message).unwrap();
-					self.download_threads.push(t);
-					self.create_timer = current;
-				} else {
-					let index = rand::thread_rng().gen_range(0, self.download_threads.len() - 1);
-					self.download_threads[index].sender.send(message).unwrap();
-				}
+				self.download_threads.push(t);
+				self.create_timer = current;
+				return;
+			} else {
+				let index = rand::thread_rng().gen_range(0, self.download_threads.len() - 1);
+				found_t = Some(&self.download_threads[index]);
+			}
+		}
+		if let Some(t) = found_t {
+			let res = t.sender.send(message);
+			if res.is_err() {
+				self.add_download(output, name, url);
 			}
 		}
 	}
@@ -282,8 +274,11 @@ impl Manager {
 			}
 		}
 	}
-	pub fn get_thread(&self) -> u16 {
+	pub fn get_other_thread(&self) -> u16 {
 		*(self.thread.lock().unwrap())
+	}
+	pub fn get_download_thread(&self) -> usize {
+		self.download_threads.len()
 	}
 	#[cfg(not(debug_assertions))]
 	pub fn get_downloaded(&self) -> u64 {

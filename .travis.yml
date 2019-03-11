@@ -57,7 +57,7 @@ after_success:
   - echo $files
 
 before_deploy:
-  - export RELEASE_NAME=`date +%m.%d`"."`echo $TRAVIS_COMMIT | cut -c 1-16`
+  - export RELEASE_NAME=$(date +%m.%d.)$TRAVIS_BUILD_ID"."$(echo $TRAVIS_COMMIT | cut -c 1-16)
   - bash ci/before_deploy.sh
 
 deploy:

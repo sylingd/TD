@@ -119,8 +119,9 @@ fn main() {
 	#[cfg(debug_assertions)]
 	{
 		loop {
-			let cnt = manager.lock().unwrap().get_thread();
-			if cnt > 0 {
+			let dcnt = manager.lock().unwrap().get_download_thread();
+			let cnt = manager.lock().unwrap().get_other_thread();
+			if cnt > 0 || dcnt > 0 {
 				thread::sleep(time::Duration::from_secs(1));
 			} else {
 				break;
@@ -137,19 +138,20 @@ fn main() {
 
 		let pb1 = m.add(ProgressBar::new(10));
 		pb1.set_style(sty.clone());
-		pb1.set_message("Threads");
+		pb1.set_message("D / Thread");
 		let pb2 = m.add(ProgressBar::new(10));
 		pb2.set_style(sty.clone());
-		pb2.set_message("D / T");
+		pb2.set_message("D / Total");
 
 		thread::spawn(move || {
 			loop {
-				let cnt = manager.lock().unwrap().get_thread();
-				if cnt > 0 {
+				let dcnt = manager.lock().unwrap().get_download_thread();
+				let cnt = manager.lock().unwrap().get_other_thread();
+				if cnt > 0 || dcnt > 0 {
 					thread::sleep(time::Duration::from_secs(1));
 
-					pb1.set_length(u64::from(cnt));
-					pb1.set_position(u64::from(cnt));
+					pb1.set_length(u64::from(cnt + dcnt));
+					pb1.set_position(u64::from(dcnt));
 
 					pb2.set_length(manager.lock().unwrap().get_total());
 					pb2.set_position(manager.lock().unwrap().get_downloaded());
