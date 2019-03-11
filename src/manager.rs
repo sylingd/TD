@@ -192,6 +192,7 @@ impl Manager {
 					}
 				}
 			}
+			manage_sender.send(ManageMessage::ThreadExit(id)).unwrap();
 		});
 		DownloadThread {
 			id: id,
