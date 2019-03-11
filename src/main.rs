@@ -147,18 +147,12 @@ fn main() {
 		builder.spawn(move || {
 			loop {
 				let dcnt = manager.lock().unwrap().get_download_thread();
-				#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
-				let dcnt = u64::from(dcnt as u32);
-
-				#[cfg(target_pointer_width = "64")]
-				let dcnt = dcnt as u64;
-
 				let cnt = manager.lock().unwrap().get_other_thread();
 				if cnt > 0 || dcnt > 0 {
 					thread::sleep(time::Duration::from_secs(1));
 
-					pb1.set_length(u64::from(cnt) + dcnt);
-					pb1.set_position(dcnt);
+					pb1.set_length(u64::from(cnt + dcnt));
+					pb1.set_position(u64::from(dcnt));
 
 					pb2.set_length(manager.lock().unwrap().get_total());
 					pb2.set_position(manager.lock().unwrap().get_downloaded());
