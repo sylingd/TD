@@ -31,13 +31,13 @@ branches:
 cache: cargo
 
 before_cache:
-  - sh ci/before_cache.sh
+  - bash ci/before_cache.sh
 
 before_install:
   - rustup self update
 
 install:
-  - sh ci/install.sh
+  - bash ci/install.sh
   - source ~/.cargo/env || true
 
 script:

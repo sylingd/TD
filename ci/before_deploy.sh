@@ -15,15 +15,16 @@ main() {
 			;;
 	esac
 
-	names=',' read -r -a array <<< "$BIN_NAME"
-	for THIS_BIN in "${names[@]}"
+	bins=',' read -r -a array <<< "$BIN_NAME"
+	for bin in "${bins[@]}"
 	do
+		echo $bin
 		if [[ "$TARGET" =~ "windows" ]]; then
-			cp target/$TARGET/release/$THIS_BIN.exe $stage1/
-			cp target/$TARGET/debug/$THIS_BIN.exe $stage2/
+			cp target/$TARGET/release/$bin.exe $stage1/
+			cp target/$TARGET/debug/$bin.exe $stage2/
 		else
-			cp target/$TARGET/release/$THIS_BIN $stage1/
-			cp target/$TARGET/debug/$THIS_BIN $stage2/
+			cp target/$TARGET/release/$bin $stage1/
+			cp target/$TARGET/debug/$bin $stage2/
 		fi
 	done
 

@@ -1,18 +1,19 @@
 main() {
-	names=',' read -r -a array <<< "$BIN_NAME"
 	cd $TRAVIS_BUILD_DIR
-	for THIS_BIN in "${names[@]}"
+	bins=',' read -r -a array <<< "$BIN_NAME"
+	for bin in "${bins[@]}"
 	do
-		rm -rfv target/$TARGET/debug/incremental/$THIS_BIN-*
-		rm -rfv target/$TARGET/debug/.fingerprint/$THIS_BIN-*
-		rm -rfv target/$TARGET/debug/build/$THIS_BIN-*
-		rm -rfv target/$TARGET/debug/deps/$THIS_BIN-*
-		rm -rfv target/$TARGET/debug/$THIS_BIN.d
-		rm -rfv target/$TARGET/release/incremental/$THIS_BIN-*
-		rm -rfv target/$TARGET/release/.fingerprint/$THIS_BIN-*
-		rm -rfv target/$TARGET/release/build/$THIS_BIN-*
-		rm -rfv target/$TARGET/release/deps/$THIS_BIN-*
-		rm -rfv target/$TARGET/release/$THIS_BIN.d
-		cargo clean -p $THIS_BIN
+		echo $bin
+		rm -rfv target/$TARGET/debug/incremental/$bin-*
+		rm -rfv target/$TARGET/debug/.fingerprint/$bin-*
+		rm -rfv target/$TARGET/debug/build/$bin-*
+		rm -rfv target/$TARGET/debug/deps/$bin-*
+		rm -rfv target/$TARGET/debug/$bin.d
+		rm -rfv target/$TARGET/release/incremental/$bin-*
+		rm -rfv target/$TARGET/release/.fingerprint/$bin-*
+		rm -rfv target/$TARGET/release/build/$bin-*
+		rm -rfv target/$TARGET/release/deps/$bin-*
+		rm -rfv target/$TARGET/release/$bin.d
+		cargo clean -p $bin
 	done
 }
