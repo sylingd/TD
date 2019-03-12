@@ -40,7 +40,7 @@ fn main() {
 	let action = action.as_str();
 	match action {
 		"m3u8" => {
-			main_create_m3u8(matches);
+			main_m3u8::create(matches);
 		}
 		_ => {
 			main_download(matches, has_opt);
@@ -178,51 +178,92 @@ fn main_download(arg: Matches, has_opt: bool) {
 	}
 }
 
-fn main_create_m3u8(arg: Matches) {
-	let mut input_dir = get_arg(&arg, "d");
-	if input_dir == "" {
-		input_dir = String::new();
-		println!("Input directory, end without '/': ");
-		io::stdin().read_line(&mut input_dir).unwrap();
-		input_dir = String::from(input_dir.trim());
-	}
+mod main_m3u8 {
+	use std::io;
+	use getopts::Matches;
+	use super::{get_arg, create_m3u8::{self, ScanResult}};
 
-	let list = create_m3u8::scan_dir(input_dir);
-	for i in 0..list.len()-1 {
-		println!(" * {} : {}", i, list[i].name);
-	}
-	let mut list_index = String::new();
-	println!("Choose dir(s), separated by ',', or input all/new: ");
-	io::stdin().read_line(&mut list_index).unwrap();
-	let list_index = list_index.trim();
-	if list_index.contains(",") {
-		let split_indexes = list_index.split(",");
-		for index in split_indexes {
-			let index: usize = index.parse().unwrap_or(9999);
-			if let Some(ref v) = list.get(index) {
-				create_m3u8::create_in_dir(v);
+	pub fn create(arg: Matches) {
+		let mut input_dir = get_arg(&arg, "d");
+		if input_dir == "" {
+			input_dir = String::new();
+			println!("Input directory, end without '/': ");
+			io::stdin().read_line(&mut input_dir).unwrap();
+			input_dir = String::from(input_dir.trim());
+		}
+
+		// 0. Show select
+		// 1. Direct
+		// 2. New
+		// 3. All
+		let mode = get_arg(&arg, "m");
+		let mode: u8 = mode.parse().unwrap_or(0);
+
+		if mode == 1 {
+			if let Some(v) = create_m3u8::check_one_dir(input_dir) {
+				create_in_dir(&v);
+			}
+		} else {
+			let list = create_m3u8::scan_dir(input_dir);
+			match mode {
+				0 => {
+					for i in 0..list.len()-1 {
+						println!(" * {} : {}", i, list[i].name);
+					}
+					let mut list_index = String::new();
+					println!("Choose dir(s), separated by ',', or input all/new: ");
+					io::stdin().read_line(&mut list_index).unwrap();
+					let list_index = list_index.trim();
+					if list_index.contains(",") {
+						let split_indexes = list_index.split(",");
+						for index in split_indexes {
+							let index: usize = index.parse().unwrap_or(9999);
+							if let Some(ref v) = list.get(index) {
+								create_in_dir(v);
+							}
+						}
+					} else {
+						match list_index {
+							"new" => create_for_new(list),
+							"all" => create_for_all(list),
+							_ => {
+								let index: usize = list_index.parse().unwrap_or(0);
+								if let Some(ref v) = list.get(index) {
+									create_in_dir(v);
+								}
+							}
+						}
+					}
+				},
+				2 => create_for_new(list),
+				3 => create_for_all(list),
+				_ => {}
 			}
 		}
-	} else {
-		match list_index {
-			"new" => {
-				for it in list {
-					if it.has_list {
-						continue;
-					}
-					create_m3u8::create_in_dir(&it);
-				}
+	}
+
+	fn create_for_new(list: Vec<ScanResult>) {
+		for it in list {
+			if it.has_list {
+				continue;
 			}
-			"all" => {
-				for it in list {
-					create_m3u8::create_in_dir(&it);
-				}
-			}
-			_ => {
-				let index: usize = list_index.parse().unwrap_or(0);
-				if let Some(ref v) = list.get(index) {
-					create_m3u8::create_in_dir(v);
-				}
+			create_in_dir(&it);
+		}
+	}
+
+	fn create_for_all(list: Vec<ScanResult>) {
+		for it in list {
+			create_in_dir(&it);
+		}
+	}
+
+	fn create_in_dir(dir: &ScanResult) {
+		match create_m3u8::create_in_dir(dir) {
+			Ok(_) => {
+				println!("Write to {} success", dir.name);
+			},
+			Err(e) => {
+				println!("Write to {} failed: {}", dir.name, e);
 			}
 		}
 	}

@@ -7,6 +7,8 @@ use m3u8_rs::playlist::{
 };
 use chrono::offset::{TimeZone, Utc};
 
+use super::error::Error;
+
 pub struct ScanResult {
 	pub name: String,
 	pub path: PathBuf,
@@ -34,7 +36,22 @@ pub fn scan_dir(dir_name: String) -> Vec<ScanResult> {
 	result
 }
 
-pub fn create_in_dir(dir: &ScanResult) {
+pub fn check_one_dir(path: String) -> Option<ScanResult> {
+	let path = PathBuf::from(path);
+	if path.exists() && path.is_dir() {
+		let mut list_path = path.clone();
+		list_path.push("playlist.m3u8");
+		Some(ScanResult {
+			name: String::from(path.file_name().unwrap().to_str().unwrap_or("")),
+			path: path,
+			has_list: list_path.exists()
+		})
+	} else {
+		None
+	}
+}
+
+pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 	let mut list = MediaPlaylist {
 		version: 3,
     	target_duration: 6.0,
@@ -94,14 +111,16 @@ pub fn create_in_dir(dir: &ScanResult) {
 			let mut buffer = BufWriter::new(file_handler);
 			let res = list.write_to(&mut buffer);
 			match res {
-				Ok(_) => {},
+				Ok(_) => {
+					Ok(())
+				},
 				Err(e) => {
-					println!("Write to {} failed: {}", dir.name, e);
+					Err(Error::from(e))
 				}
 			}
 		},
 		Err(e) => {
-			println!("Write to {} failed: {}", dir.name, e);
+			Err(Error::from(e))
 		}
 	}
 }
