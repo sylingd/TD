@@ -3,7 +3,6 @@ main() {
 	bins=(${BIN_NAME//,/ })
 	for bin in "${bins[@]}"
 	do
-		echo $bin
 		rm -rfv target/$TARGET/debug/incremental/$bin-*
 		rm -rfv target/$TARGET/debug/.fingerprint/$bin-*
 		rm -rfv target/$TARGET/debug/build/$bin-*
