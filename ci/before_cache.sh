@@ -13,8 +13,8 @@ main() {
 		rm -rfv target/$TARGET/release/build/$bin-*
 		rm -rfv target/$TARGET/release/deps/$bin-*
 		rm -rfv target/$TARGET/release/$bin.d
-		cargo clean -p $bin
 	done
+	cargo clean -p $PACKAGE_NAME
 }
 
 main

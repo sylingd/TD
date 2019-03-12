@@ -28,3 +28,5 @@ Remove-Item *.* -Force
 Set-Location ..
 Remove-Item $STAGE
 Set-Location $SRC_DIR
+
+git tag $Env:RELEASE_NAME
