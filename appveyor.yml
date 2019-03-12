@@ -14,9 +14,6 @@ branches:
   only:
     - master
 
-before_cache:
-  - ps ci/before_cache.ps1
-
 cache:
   - target
   - '%USERPROFILE%\.cargo'
@@ -34,6 +31,9 @@ build_script:
 
 before_deploy:
   - ps ci/before_deploy.ps1
+
+after_build:
+  - ps ci/before_cache.ps1
 
 deploy:
   release: '%RELEASE_NAME%'
