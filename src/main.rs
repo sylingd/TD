@@ -18,11 +18,13 @@ mod error;
 mod manager;
 mod twitch;
 mod future;
+mod create_m3u8;
 
 fn main() {
 	let args: Vec<String> = env::args().collect();
 
 	let mut opts = Options::new();
+	opts.optopt("a", "action", "Action", "");
 	opts.optopt("t", "token", "Set OAuth token", "");
 	opts.optopt("m", "mode", "Set download mode", "");
 	opts.optopt("d", "dir", "Set output directory", "");
@@ -32,11 +34,23 @@ fn main() {
 		Ok(m) => m,
 		Err(f) => panic!(f.to_string())
 	};
-
-	let manager = Manager::new();
 	let has_opt = args.len() > 1;
 
-	let mut output_dir = get_arg(&matches, "d");
+	let action = get_arg(&matches, "a");
+	let action = action.as_str();
+	match action {
+		"m3u8" => {
+			main_create_m3u8(matches);
+		}
+		_ => {
+			main_download(matches, has_opt);
+		}
+	}
+}
+
+fn main_download(arg: Matches, has_opt: bool) {
+	let manager = Manager::new();
+	let mut output_dir = get_arg(&arg, "d");
 	if output_dir == "" {
 		output_dir = String::new();
 		println!("Input output directory, end without '/': ");
@@ -44,7 +58,7 @@ fn main() {
 		output_dir = String::from(output_dir.trim());
 	}
 
-	let mut token = get_arg(&matches, "t");
+	let mut token = get_arg(&arg, "t");
 	if token == "" && !has_opt {
 		token = String::new();
 		println!("Input OAuth Token (optional): ");
@@ -52,7 +66,7 @@ fn main() {
 		token = String::from(token.trim());
 	}
 
-	let mut mode = get_arg(&matches, "m");
+	let mut mode = get_arg(&arg, "m");
 	if mode == "" && !has_opt {
 		mode = String::new();
 		println!("Modes:");
@@ -79,15 +93,14 @@ fn main() {
 				let split_channels = channel_index.split(",");
 				for index in split_channels {
 					let index: usize = index.parse().unwrap_or(9999);
-					if index > channels.len() - 1 {
-						continue;
+					if let Some(v) = channels.get(index) {
+						manager.lock().unwrap().init_channel(output_dir.clone(), v.channel.clone(), token.clone(), v.player.clone());
 					}
-					manager.lock().unwrap().init_channel(output_dir.clone(), channels[index].channel.clone(), token.clone(), channels[index].player.clone());
 				}
 			} else {
 				let index: usize = channel_index.parse().unwrap_or(9999);
-				if index < channels.len() {
-					manager.lock().unwrap().init_channel(output_dir.clone(), channels[index].channel.clone(), token.clone(), channels[index].player.clone());
+				if let Some(v) = channels.get(index) {
+					manager.lock().unwrap().init_channel(output_dir.clone(), v.channel.clone(), token.clone(), v.player.clone());
 				}
 			}
 		} else {
@@ -99,7 +112,7 @@ fn main() {
 			}
 		}
 	} else {
-		let mut channels = get_arg(&matches, "c");
+		let mut channels = get_arg(&arg, "c");
 		if channels == "" {
 			channels = String::new();
 			println!("Input channel name(s), separated by ',': ");
@@ -162,6 +175,56 @@ fn main() {
 			}
 		}).unwrap();
 		m.join_and_clear().unwrap();
+	}
+}
+
+fn main_create_m3u8(arg: Matches) {
+	let mut input_dir = get_arg(&arg, "d");
+	if input_dir == "" {
+		input_dir = String::new();
+		println!("Input directory, end without '/': ");
+		io::stdin().read_line(&mut input_dir).unwrap();
+		input_dir = String::from(input_dir.trim());
+	}
+
+	let list = create_m3u8::scan_dir(input_dir);
+	for i in 0..list.len()-1 {
+		println!(" * {} : {}", i, list[i].name);
+	}
+	let mut list_index = String::new();
+	println!("Choose dir(s), separated by ',', or input all/new: ");
+	io::stdin().read_line(&mut list_index).unwrap();
+	let list_index = list_index.trim();
+	if list_index.contains(",") {
+		let split_indexes = list_index.split(",");
+		for index in split_indexes {
+			let index: usize = index.parse().unwrap_or(9999);
+			if let Some(ref v) = list.get(index) {
+				create_m3u8::create_in_dir(v);
+			}
+		}
+	} else {
+		match list_index {
+			"new" => {
+				for it in list {
+					if it.has_list {
+						continue;
+					}
+					create_m3u8::create_in_dir(&it);
+				}
+			}
+			"all" => {
+				for it in list {
+					create_m3u8::create_in_dir(&it);
+				}
+			}
+			_ => {
+				let index: usize = list_index.parse().unwrap_or(0);
+				if let Some(ref v) = list.get(index) {
+					create_m3u8::create_in_dir(v);
+				}
+			}
+		}
 	}
 }
 
