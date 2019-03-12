@@ -26,8 +26,8 @@ install:
   - cargo -vV
 
 build_script:
-  - cargo build --all
-  - cargo build --all --release
+  - cargo build --all --target %TARGET%
+  - cargo build --all --target %TARGET% --release
 
 before_deploy:
   - ps: .\ci\before_deploy.ps1
