@@ -82,8 +82,8 @@ fn main_download(arg: Matches, has_opt: bool) {
 	if mode == 2 || mode == 3 {
 		let channels = manager.lock().unwrap().get_all_access_channels().unwrap();
 		if mode == 2 {
-			for i in 0..channels.len()-1 {
-				println!(" * {} : {}", i, channels[i].name);
+			for i in 0..channels.len() {
+				println!(" * {}: {}", i, channels[i].name);
 			}
 			let mut channel_index = String::new();
 			println!("Choose channel(s), separated by ',': ");
@@ -207,8 +207,8 @@ mod main_m3u8 {
 			let list = create_m3u8::scan_dir(input_dir);
 			match mode {
 				0 => {
-					for i in 0..list.len()-1 {
-						println!(" * {} : {}", i, list[i].name);
+					for i in 0..list.len() {
+						println!(" * {}: {}", i, list[i].name);
 					}
 					let mut list_index = String::new();
 					println!("Choose dir(s), separated by ',', or input all/new: ");
