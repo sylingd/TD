@@ -193,10 +193,11 @@ impl Manager {
 		builder.spawn(move || {
 			let mut last_count = 0;
 			let mut last_create = SystemTime::now();
+			this.lock().unwrap().create_download();
 			loop {
 				if let Ok(queue) = t_download_queue.lock() {
 					if let Ok(past) = SystemTime::now().duration_since(last_create) {
-						if past.as_secs() > 3 && queue.len() - last_count > 10 {
+						if past.as_secs() > 2 && queue.len() - last_count > 10 {
 							last_count = queue.len();
 							last_create = SystemTime::now();
 							this.lock().unwrap().create_download();
