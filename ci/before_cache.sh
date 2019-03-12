@@ -1,6 +1,6 @@
 main() {
 	cd $TRAVIS_BUILD_DIR
-	bins=',' read -r -a array <<< "$BIN_NAME"
+	bins=(${BIN_NAME//,/ })
 	for bin in "${bins[@]}"
 	do
 		echo $bin
@@ -17,3 +17,5 @@ main() {
 		cargo clean -p $bin
 	done
 }
+
+main

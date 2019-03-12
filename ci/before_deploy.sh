@@ -15,7 +15,7 @@ main() {
 			;;
 	esac
 
-	bins=',' read -r -a array <<< "$BIN_NAME"
+	bins=(${BIN_NAME//,/ })
 	for bin in "${bins[@]}"
 	do
 		echo $bin

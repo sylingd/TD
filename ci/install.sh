@@ -17,7 +17,7 @@ main() {
 	url="https://github.com/$git"
 	say "GitHub repository: $url"
 
-	if [ -z $crate ]; then
+	if [[ -z $crate ]]; then
 		crate=$(echo $git | cut -d'/' -f2)
 	fi
 
@@ -25,20 +25,20 @@ main() {
 
 	url="$url/releases"
 
-	if [ -z $tag ]; then
+	if [[ -z $tag ]]; then
 		tag=$(curl -s "$url/latest" | cut -d'"' -f2 | rev | cut -d'/' -f1 | rev)
 		say "Tag: latest ($tag)"
 	else
 		say "Tag: $tag"
 	fi
 
-	if [ -z $target ]; then
+	if [[ -z $target ]]; then
 		target=$(rustc -Vv | grep host | cut -d' ' -f2)
 	fi
 
 	say "Target: $target"
 
-	if [ -z $dest ]; then
+	if [[ -z $dest ]]; then
 		dest="$HOME/.cargo/bin"
 	fi
 
@@ -52,12 +52,8 @@ main() {
 	for f in $(ls $td); do
 		test -x $td/$f || continue
 
-		if [ -e "$dest/$f" ] && [ $force = false ]; then
-			say "$f already exists in $dest"
-		else
-			mkdir -p $dest
-			install -m 755 $td/$f $dest
-		fi
+		mkdir -p $dest
+		install -m 755 $td/$f $dest
 	done
 
 	rm -rf $td
