@@ -71,12 +71,23 @@ pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 		if path.is_file() {
 			let name = entry.file_name().into_string().unwrap_or(String::new());
 			if name.ends_with(".ts") {
-				let (time, duration) = {
-					let res: Vec<&str> = name.splitn(2, ".").collect();
-					let res2: Vec<&str> = res[1].splitn(2, ".").collect();
-					(res[0], res2[0])
+				let res1: Vec<&str> = name.splitn(2, "_").collect();
+				let time: i64 = match res1.get(0) {
+					Some(x) => x.parse().unwrap(),
+					None => 0
 				};
-				file_list.push((time.parse().unwrap(), duration.parse().unwrap(), name));
+				if time == 0 {
+					continue;
+				}
+				let res2: Vec<&str> = res1[1].rsplitn(2, ".").collect();
+				let duration: f32 = match res2.get(1) {
+					Some(x) => x.parse().unwrap(),
+					None => 0.0
+				};
+				if duration == 0.0 {
+					continue;
+				}
+				file_list.push((time, duration, name));
 			}
 		}
 	}
