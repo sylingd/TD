@@ -3,7 +3,7 @@ $SRC_DIR = $PWD.Path
 # Generate release name
 $CommitTime = (git show -s --format=%ct $APPVEYOR_REPO_COMMIT) | Out-String
 $Date = (Get-Date).ToString("MM.dd")
-$Env:RELEASE_NAME = "$($Date).$($CommitTime)"
+$Env:RELEASE_NAME = "$($Date).$($CommitTime)".Trim()
 
 $STAGE = [System.Guid]::NewGuid().ToString()
 Set-Location $Env:Temp
@@ -30,4 +30,4 @@ Set-Location $SRC_DIR
 Push-AppveyorArtifact "$($Env:PACKAGE_NAME)-$($Env:TARGET)-RELEASE.zip"
 Push-AppveyorArtifact "$($Env:PACKAGE_NAME)-$($Env:TARGET)-DEBUG.zip"
 
-git tag "$($Env:RELEASE_NAME)"
+git tag $Env:RELEASE_NAME
