@@ -74,7 +74,7 @@ pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 				let (time, duration) = {
 					let res: Vec<&str> = name.splitn(2, ".").collect();
 					let res2: Vec<&str> = res[1].splitn(2, ".").collect();
-					(res[1], res2[0])
+					(res[0], res2[0])
 				};
 				file_list.push((time.parse().unwrap(), duration.parse().unwrap(), name));
 			}
@@ -101,12 +101,12 @@ pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 	// Write to
 	let mut list_path = dir.path.clone();
 	list_path.push("playlist.m3u8");
-	let file_handler_rs = if list_path.exists() {
+	let file_handler_res = if list_path.exists() {
 		fs::File::open(list_path)
 	} else {
 		fs::File::create(list_path)
 	};
-	match file_handler_rs {
+	match file_handler_res {
 		Ok(file_handler) => {
 			let mut buffer = BufWriter::new(file_handler);
 			let res = list.write_to(&mut buffer);
