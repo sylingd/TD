@@ -1,8 +1,8 @@
 main() {
 	cd $TRAVIS_BUILD_DIR
 
-	cross build --target $TARGET
-	cross build --target $TARGET --release
+	cross build --all --target $TARGET
+	cross build --all --target $TARGET --release
 
 	# cross test --target $TARGET
 	# cross test --target $TARGET --release

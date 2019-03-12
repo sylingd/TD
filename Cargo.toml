@@ -20,3 +20,11 @@ tokio-curl = "0.1.11"
 tokio-core = "0.1.17"
 futures = "0.1.25"
 rand = "0.6.5"
+
+[[bin]]
+name = "twitchdl"
+path = "src/main/main.rs"
+
+[[bin]]
+name = "m3u8"
+path = "src/m3u8/main.rs"

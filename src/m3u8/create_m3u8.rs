@@ -1,13 +1,11 @@
 use std::fs;
-use std::io::BufWriter;
+use std::io::{Error, BufWriter};
 use std::path::{Path, PathBuf};
 use m3u8_rs::playlist::{
 	MediaPlaylist,
 	MediaSegment
 };
 use chrono::offset::{TimeZone, Utc};
-
-use super::error::Error;
 
 pub struct ScanResult {
 	pub name: String,
@@ -120,13 +118,9 @@ pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 				Ok(_) => {
 					Ok(())
 				},
-				Err(e) => {
-					Err(Error::from(e))
-				}
+				Err(e) => Err(e)
 			}
 		},
-		Err(e) => {
-			Err(Error::from(e))
-		}
+		Err(e) => Err(e)
 	}
 }

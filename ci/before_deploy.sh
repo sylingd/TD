@@ -15,18 +15,22 @@ main() {
 			;;
 	esac
 
-	if [[ "$TARGET" =~ "windows" ]]; then
-		cp target/$TARGET/release/$CRATE_NAME.exe $stage1/
-		cp target/$TARGET/debug/$CRATE_NAME.exe $stage2/
-	else
-		cp target/$TARGET/release/$CRATE_NAME $stage1/
-		cp target/$TARGET/debug/$CRATE_NAME $stage2/
-	fi
+	names=',' read -r -a array <<< "$BIN_NAME"
+	for THIS_BIN in "${names[@]}"
+	do
+		if [[ "$TARGET" =~ "windows" ]]; then
+			cp target/$TARGET/release/$THIS_BIN.exe $stage1/
+			cp target/$TARGET/debug/$THIS_BIN.exe $stage2/
+		else
+			cp target/$TARGET/release/$THIS_BIN $stage1/
+			cp target/$TARGET/debug/$THIS_BIN $stage2/
+		fi
+	done
 
 	cd $stage1
-	zip $TRAVIS_BUILD_DIR/$CRATE_NAME-$TARGET-RELEASE.zip *
+	zip $TRAVIS_BUILD_DIR/$PACKAGE_NAME-$TARGET-RELEASE.zip *
 	cd $stage2
-	zip $TRAVIS_BUILD_DIR/$CRATE_NAME-$TARGET-DEBUG.zip *
+	zip $TRAVIS_BUILD_DIR/$PACKAGE_NAME-$TARGET-DEBUG.zip *
 	cd $TRAVIS_BUILD_DIR
 
 	git tag $RELEASE_NAME

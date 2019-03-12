@@ -18,13 +18,11 @@ mod error;
 mod manager;
 mod twitch;
 mod future;
-mod create_m3u8;
 
 fn main() {
 	let args: Vec<String> = env::args().collect();
 
 	let mut opts = Options::new();
-	opts.optopt("a", "action", "Action", "");
 	opts.optopt("t", "token", "Set OAuth token", "");
 	opts.optopt("m", "mode", "Set download mode", "");
 	opts.optopt("d", "dir", "Set output directory", "");
@@ -36,21 +34,8 @@ fn main() {
 	};
 	let has_opt = args.len() > 1;
 
-	let action = get_arg(&matches, "a");
-	let action = action.as_str();
-	match action {
-		"m3u8" => {
-			main_m3u8::create(matches);
-		}
-		_ => {
-			main_download(matches, has_opt);
-		}
-	}
-}
-
-fn main_download(arg: Matches, has_opt: bool) {
 	let manager = Manager::new();
-	let mut output_dir = get_arg(&arg, "d");
+	let mut output_dir = get_arg(&matches, "d");
 	if output_dir == "" {
 		output_dir = String::new();
 		println!("Input output directory, end without '/': ");
@@ -58,7 +43,7 @@ fn main_download(arg: Matches, has_opt: bool) {
 		output_dir = String::from(output_dir.trim());
 	}
 
-	let mut token = get_arg(&arg, "t");
+	let mut token = get_arg(&matches, "t");
 	if token == "" && !has_opt {
 		token = String::new();
 		println!("Input OAuth Token (optional): ");
@@ -66,7 +51,7 @@ fn main_download(arg: Matches, has_opt: bool) {
 		token = String::from(token.trim());
 	}
 
-	let mut mode = get_arg(&arg, "m");
+	let mut mode = get_arg(&matches, "m");
 	if mode == "" && !has_opt {
 		mode = String::new();
 		println!("Modes:");
@@ -112,7 +97,7 @@ fn main_download(arg: Matches, has_opt: bool) {
 			}
 		}
 	} else {
-		let mut channels = get_arg(&arg, "c");
+		let mut channels = get_arg(&matches, "c");
 		if channels == "" {
 			channels = String::new();
 			println!("Input channel name(s), separated by ',': ");
@@ -175,97 +160,6 @@ fn main_download(arg: Matches, has_opt: bool) {
 			}
 		}).unwrap();
 		m.join_and_clear().unwrap();
-	}
-}
-
-mod main_m3u8 {
-	use std::io;
-	use getopts::Matches;
-	use super::{get_arg, create_m3u8::{self, ScanResult}};
-
-	pub fn create(arg: Matches) {
-		let mut input_dir = get_arg(&arg, "d");
-		if input_dir == "" {
-			input_dir = String::new();
-			println!("Input directory, end without '/': ");
-			io::stdin().read_line(&mut input_dir).unwrap();
-			input_dir = String::from(input_dir.trim());
-		}
-
-		// 0. Show select
-		// 1. Direct
-		// 2. New
-		// 3. All
-		let mode = get_arg(&arg, "m");
-		let mode: u8 = mode.parse().unwrap_or(0);
-
-		if mode == 1 {
-			if let Some(v) = create_m3u8::check_one_dir(input_dir) {
-				create_in_dir(&v);
-			}
-		} else {
-			let list = create_m3u8::scan_dir(input_dir);
-			match mode {
-				0 => {
-					for i in 0..list.len() {
-						println!(" * {}: {}", i, list[i].name);
-					}
-					let mut list_index = String::new();
-					println!("Choose dir(s), separated by ',', or input all/new: ");
-					io::stdin().read_line(&mut list_index).unwrap();
-					let list_index = list_index.trim();
-					if list_index.contains(",") {
-						let split_indexes = list_index.split(",");
-						for index in split_indexes {
-							let index: usize = index.parse().unwrap_or(9999);
-							if let Some(ref v) = list.get(index) {
-								create_in_dir(v);
-							}
-						}
-					} else {
-						match list_index {
-							"new" => create_for_new(list),
-							"all" => create_for_all(list),
-							_ => {
-								let index: usize = list_index.parse().unwrap_or(0);
-								if let Some(ref v) = list.get(index) {
-									create_in_dir(v);
-								}
-							}
-						}
-					}
-				},
-				2 => create_for_new(list),
-				3 => create_for_all(list),
-				_ => {}
-			}
-		}
-	}
-
-	fn create_for_new(list: Vec<ScanResult>) {
-		for it in list {
-			if it.has_list {
-				continue;
-			}
-			create_in_dir(&it);
-		}
-	}
-
-	fn create_for_all(list: Vec<ScanResult>) {
-		for it in list {
-			create_in_dir(&it);
-		}
-	}
-
-	fn create_in_dir(dir: &ScanResult) {
-		match create_m3u8::create_in_dir(dir) {
-			Ok(_) => {
-				println!("Write to {} success", dir.name);
-			},
-			Err(e) => {
-				println!("Write to {} failed: {}", dir.name, e);
-			}
-		}
 	}
 }
 
