@@ -112,12 +112,7 @@ pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 	// Write to
 	let mut list_path = dir.path.clone();
 	list_path.push("playlist.m3u8");
-	let file_handler_res = if list_path.exists() {
-		fs::File::open(list_path)
-	} else {
-		fs::File::create(list_path)
-	};
-	match file_handler_res {
+	match fs::File::create(list_path) {
 		Ok(file_handler) => {
 			let mut buffer = BufWriter::new(file_handler);
 			let res = list.write_to(&mut buffer);
