@@ -1,6 +1,4 @@
-Set-Location $APPVEYOR_BUILD_FOLDER
-
-$SRC_DIR = $APPVEYOR_BUILD_FOLDER
+$SRC_DIR = $PWD.Path
 
 # Generate release name
 $CommitTime = (git show -s --format=%ct $APPVEYOR_REPO_COMMIT) | Out-String
@@ -26,7 +24,7 @@ foreach ($Bin in $Bins) {
 
 Remove-Item *.* -Force
 Set-Location ..
-Remove-Item $STAGE
+Remove-Item $STAGE -Force -Recurse
 Set-Location $SRC_DIR
 
 git tag $Env:RELEASE_NAME
