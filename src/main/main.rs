@@ -27,7 +27,11 @@ fn main() {
 	opts.optopt("m", "mode", "Set download mode", "");
 	opts.optopt("d", "dir", "Set output directory", "");
 	opts.optopt("c", "channel", "Set channel(s)", "");
-	// opts.optflag("", "http-dns", "Use http dns");
+	// Options about auto mode
+	opts.optopt("", "player", "Recode one player", "");
+	opts.optopt("", "team", "Recode one team", "");
+	opts.optflag("", "pov", "Record POV");
+	opts.optflag("", "three-screen", "Record three screen");
 	let matches = match opts.parse(&args[1..]) {
 		Ok(m) => m,
 		Err(f) => panic!(f.to_string())
@@ -55,9 +59,9 @@ fn main() {
 	if mode == "" && !has_opt {
 		mode = String::new();
 		println!("Modes:");
-		println!(" * 1 : default");
-		println!(" * 2 : All Access Pass mode");
-		println!(" * 3 : Auto All Access Pass mode");
+		println!("* 1 : default");
+		println!("* 2 : All Access Pass mode");
+		println!("* 3 : Auto All Access Pass mode");
 		println!("Choose mode (default is 1): ");
 		io::stdin().read_line(&mut mode).unwrap();
 		mode = String::from(mode.trim());
@@ -68,7 +72,7 @@ fn main() {
 		let channels = manager.lock().unwrap().get_all_access_channels().unwrap();
 		if mode == 2 {
 			for i in 0..channels.len() {
-				println!(" * {}: {}", i, channels[i].name);
+				println!("* {}: {}", i, channels[i].name);
 			}
 			let mut channel_index = String::new();
 			println!("Choose channel(s), separated by ',': ");
@@ -89,9 +93,22 @@ fn main() {
 				}
 			}
 		} else {
+			let player = get_arg(&matches, "player");
+			let team = get_arg(&matches, "team");
+			let pov = matches.opt_present("pov");
+			let mut three_screen = matches.opt_present("three-screen");
+			// Default is three_screen mode
+			if player.is_empty() && team.is_empty() && !pov && !three_screen {
+				three_screen = true;
+			}
 			// Auto all access pass
 			for channel in channels.iter() {
-				if channel.name.contains("Main Stream / Map") {
+				let is_add =
+					(three_screen && channel.name.contains("Main Stream / Map")) ||
+						(pov && (channel.name.contains("POV") || channel.name == "Map")) ||
+						(!player.is_empty() && channel.player.contains(player.as_str())) ||
+						(!team.is_empty() && channel.team.contains(team.as_str()));
+				if is_add {
 					manager.lock().unwrap().init_channel(output_dir.clone(), channel.channel.clone(), token.clone(), channel.player.clone());
 				}
 			}
@@ -134,10 +151,10 @@ fn main() {
 		let m = MultiProgress::new();
 		let sty = ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}").progress_chars("##-");
 
-		let pb1 = m.add(ProgressBar::new(10));
+		let pb1 = m.add(ProgressBar::new(2));
 		pb1.set_style(sty.clone());
-		pb1.set_message("D / Thread");
-		let pb2 = m.add(ProgressBar::new(10));
+		pb1.set_message("O / Thread");
+		let pb2 = m.add(ProgressBar::new(2));
 		pb2.set_style(sty.clone());
 		pb2.set_message("D / Total");
 
@@ -150,7 +167,7 @@ fn main() {
 					thread::sleep(time::Duration::from_secs(1));
 
 					pb1.set_length(u64::from(cnt + dcnt));
-					pb1.set_position(u64::from(dcnt));
+					pb1.set_position(u64::from(cnt));
 
 					pb2.set_length(manager.lock().unwrap().get_total());
 					pb2.set_position(manager.lock().unwrap().get_downloaded());

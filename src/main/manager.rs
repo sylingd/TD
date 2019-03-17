@@ -171,12 +171,12 @@ impl Manager {
 					}
 					None => {
 						if let Ok(duration) = SystemTime::now().duration_since(last_wakeup) {
-							if duration.as_secs() > 60 {
+							if duration.as_secs() > 40 {
 								// Not wakeup for a longtime, exit
 								break;
 							}
 						}
-						thread::sleep(Duration::from_secs(1));
+						thread::sleep(Duration::from_millis(1500));
 					}
 				}
 			}
@@ -209,7 +209,7 @@ impl Manager {
 						this.lock().unwrap().create_list(new_list);
 					}
 				}
-				thread::sleep(Duration::from_micros(500));
+				thread::sleep(Duration::from_secs(1));
 			}
 		}).unwrap();
 	}

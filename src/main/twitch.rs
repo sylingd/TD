@@ -19,7 +19,8 @@ pub struct OwlChannel {
 	pub id: String,
 	pub channel: String,
 	pub name: String,
-	pub player: String
+	pub player: String,
+	pub team: String
 }
 
 pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
@@ -176,6 +177,7 @@ pub fn get_all_access_channels(handle: Handle) -> TdFuture<Vec<OwlChannel>> {
 				for it in chanlets.iter() {
 					let mut title = String::new();
 					let mut player = String::new();
+					let mut team = String::new();
 					let content_attributes = it.get("contentAttributes").unwrap().as_array().unwrap();
 					for val in content_attributes.iter() {
 						let key = val.get("key").unwrap().as_str().unwrap();
@@ -186,7 +188,10 @@ pub fn get_all_access_channels(handle: Handle) -> TdFuture<Vec<OwlChannel>> {
 						if key == "player" {
 							player = String::from(value);
 						}
-						if !title.is_empty() && !player.is_empty() {
+						if key == "team" {
+							team = String::from(value);
+						}
+						if !title.is_empty() && !player.is_empty() && !team.is_empty() {
 							break;
 						}
 					}
@@ -194,7 +199,8 @@ pub fn get_all_access_channels(handle: Handle) -> TdFuture<Vec<OwlChannel>> {
 						id: String::from(it.get("id").unwrap().as_str().unwrap()),
 						channel: String::from(it.get("owner").unwrap().get("login").unwrap().as_str().unwrap()),
 						name: title,
-						player: player
+						player: player,
+						team: team
 					});
 				}
 				Ok(result)
