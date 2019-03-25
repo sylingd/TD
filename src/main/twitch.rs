@@ -148,8 +148,12 @@ pub fn channel(name: String, token: String) -> TdFuture<String> {
 				println!("Parsed playlist");
 
 				// Use first variant
-				let uri = format!("{}", v.variants[0].uri);
-				Ok(uri)
+				if v.variants.len() == 0 {
+					Err(Error::from(ErrorKind::ParseError(String::from(""))))
+				} else {
+					let uri = format!("{}", v.variants[0].uri);
+					Ok(uri)
+				}
 			},
 			Err(_) => {
 				#[cfg(debug_assertions)]

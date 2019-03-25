@@ -13,8 +13,8 @@ error_chain! {
 			display("Other error: '{}'", v)
 		}
 		ParseError(v: String) {
-			description("parse error"),
-			display("parse error: '{}'", v)
+			description("Parse error"),
+			display("Parse error: {}", v)
 		}
 	}
 }
