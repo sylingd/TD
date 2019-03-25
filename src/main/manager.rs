@@ -169,7 +169,7 @@ impl Manager {
 					}
 					None => {
 						if let Ok(duration) = SystemTime::now().duration_since(last_wakeup) {
-							if duration.as_secs() > 40 {
+							if duration.as_secs() > 30 {
 								// Not wakeup for a longtime, exit
 								break;
 							}
@@ -199,8 +199,8 @@ impl Manager {
 					if let Ok(past) = cur_time.duration_since(last_create) {
 						if past.as_secs() > 2 {
 							let cur_count = queue.len();
-							let tc = usize::from(*(t_other_thread.lock().unwrap()));
-							if cur_count > last_count || last_count - cur_count > tc {
+							let tc = usize::from(*(t_other_thread.lock().unwrap())) + 2;
+							if cur_count > tc && (cur_count > last_count || last_count - cur_count < tc) {
 								last_count = cur_count;
 								last_create = cur_time;
 								this.lock().unwrap().create_download();
