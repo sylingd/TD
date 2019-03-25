@@ -4,7 +4,7 @@ use std::path::Path;
 use std::time::{Duration, SystemTime};
 use std::sync::{Arc, Mutex};
 
-use tokio_core::reactor::Core;
+use tokio::runtime::current_thread;
 use chrono::offset::Local;
 
 use super::twitch;
@@ -21,7 +21,6 @@ struct DownloadMedia {
 }
 
 pub struct Manager {
-	queued: Arc<Mutex<Vec<String>>>,
 	download_queue: Arc<Mutex<Vec<DownloadMedia>>>,
 	list_queue: Arc<Mutex<Vec<DownloadList>>>,
 	other_thread: Arc<Mutex<u16>>,
@@ -40,9 +39,9 @@ impl Manager {
 		let t_list_queue = self.list_queue.clone();
 		let builder = thread::Builder::new().name(format!("Init {}", channel));
 		builder.spawn(move || {
-			let mut core = Core::new().unwrap();
-			let req = twitch::channel(core.handle(), channel.clone(), token);
-			match core.run(req) {
+			let mut rt = current_thread::Runtime::new().expect("new rt");
+			let req = twitch::channel(channel.clone(), token);
+			match rt.block_on(req) {
 				Ok(v) => {
 					if !v.is_empty() {
 						let output = format!("{}/{}_{}", output_dir, Local::now().format("%m%d_%H_%M_%S"), if name.is_empty() { channel } else { name });
@@ -76,7 +75,6 @@ impl Manager {
 	}
 	fn create_list(&self, info: DownloadList) {
 		let t_other_thread = self.other_thread.clone();
-		let t_queued = self.queued.clone();
 		let t_download_queue = self.download_queue.clone();
 		let t_total = self.total.clone();
 		let builder = thread::Builder::new().name(format!("List {}", info.output));
@@ -85,14 +83,14 @@ impl Manager {
 				let mut tc = t_other_thread.lock().unwrap();
 				*tc += 1;
 			}
-			let mut core = Core::new().unwrap();
+			let mut rt = current_thread::Runtime::new().expect("new rt");
 			let mut retry = 0;
+			let mut queued = Vec::new();
 			loop {
-				let req = twitch::list(core.handle(), info.url.clone());
-				match core.run(req) {
+				let req = twitch::list(info.url.clone());
+				match rt.block_on(req) {
 					Ok(res) => {
 						retry = 0;
-						let mut queued = t_queued.lock().unwrap();
 						for (time, d, u) in res {
 							if !queued.contains(&u) {
 								queued.push(u.clone());
@@ -114,7 +112,7 @@ impl Manager {
 						println!("Fetch list failed: {}", _e);
 
 						retry += 1;
-						if retry > 3 {
+						if retry > 10 {
 							break;
 						}
 					}
@@ -139,15 +137,15 @@ impl Manager {
 				let mut td = t_download_thread.lock().unwrap();
 				*td += 1;
 			}
-			let mut core = Core::new().unwrap();
+			let mut rt = current_thread::Runtime::new().expect("new rt");
 			let mut last_wakeup = SystemTime::now();
 			loop {
 				let mission = t_download_queue.lock().unwrap().pop();
 				match mission {
 					Some(msg) => {
 						// Download
-						let req = twitch::download(core.handle(), msg.url.clone());
-						match core.run(req) {
+						let req = twitch::download(msg.url.clone());
+						match rt.block_on(req) {
 							Ok(res) => {
 								#[cfg(debug_assertions)]
 								println!("Downloaded {}", msg.name);
@@ -197,7 +195,8 @@ impl Manager {
 			loop {
 				if let Ok(queue) = t_download_queue.lock() {
 					if let Ok(past) = SystemTime::now().duration_since(last_create) {
-						if past.as_secs() > 2 && queue.len() - last_count > 10 {
+						let cur_count = queue.len();
+						if past.as_secs() > 2 && cur_count > last_count && cur_count - last_count > 10 {
 							last_count = queue.len();
 							last_create = SystemTime::now();
 							this.lock().unwrap().create_download();
@@ -214,9 +213,9 @@ impl Manager {
 		}).unwrap();
 	}
 	pub fn get_all_access_channels(&self) -> Option<Vec<twitch::OwlChannel>> {
-		let mut core = Core::new().unwrap();
-		let req = twitch::get_all_access_channels(core.handle());
-		match core.run(req) {
+		let mut rt = current_thread::Runtime::new().expect("new rt");
+		let req = twitch::get_all_access_channels();
+		match rt.block_on(req) {
 			Ok(v) => {
 				Some(v)
 			}
@@ -242,7 +241,6 @@ impl Manager {
 	}
 	pub fn new() -> Arc<Mutex<Self>> {
 		let res = Arc::new(Mutex::new(Manager {
-			queued: Arc::new(Mutex::new(Vec::new())),
 			download_queue: Arc::new(Mutex::new(Vec::new())),
 			list_queue: Arc::new(Mutex::new(Vec::new())),
 			other_thread: Arc::new(Mutex::new(0)),

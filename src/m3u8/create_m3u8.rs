@@ -20,15 +20,15 @@ pub fn scan_dir(dir_name: String) -> Vec<ScanResult> {
 		for entry in fs::read_dir(dir).unwrap() {
 			let entry = entry.unwrap();
 			let path = entry.path();
-            if path.is_dir() {
+			if path.is_dir() {
 				let mut list_path = path.clone();
 				list_path.push("playlist.m3u8");
-                result.push(ScanResult {
+				result.push(ScanResult {
 					name: entry.file_name().into_string().unwrap_or(String::new()),
 					path: path,
 					has_list: list_path.exists()
 				});
-            }
+			}
 		}
 	}
 	result
@@ -52,8 +52,8 @@ pub fn check_one_dir(path: String) -> Option<ScanResult> {
 pub fn create_in_dir(dir: &ScanResult) -> Result<(), Error> {
 	let mut list = MediaPlaylist {
 		version: 3,
-    	target_duration: 6.0,
-    	media_sequence: 0,
+		target_duration: 6.0,
+		media_sequence: 0,
 		segments: Vec::new(),
 		discontinuity_sequence: 0,
 		end_list: true,

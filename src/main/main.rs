@@ -2,9 +2,12 @@
 extern crate error_chain;
 extern crate getopts;
 extern crate serde_json;
-extern crate tokio_core;
 extern crate rand;
 extern crate indicatif;
+extern crate futures;
+extern crate tokio;
+extern crate hyper;
+extern crate hyper_tls;
 
 use std::{env, io, time, thread};
 
@@ -12,7 +15,7 @@ use getopts::{Options, Matches};
 
 use manager::Manager;
 
-mod curl;
+mod http;
 #[allow(deprecated)]
 mod error;
 mod manager;
@@ -149,7 +152,9 @@ fn main() {
 		use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 		let m = MultiProgress::new();
-		let sty = ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}").progress_chars("##-");
+		let sty = ProgressStyle::default_bar()
+			.template("[{bar:40.cyan/blue}] {pos:>5}/{len:5} {msg}")
+			.progress_chars("##-");
 
 		let pb1 = m.add(ProgressBar::new(2));
 		pb1.set_style(sty.clone());

@@ -4,10 +4,9 @@ use chrono::{
 	offset::Local
 };
 use futures::Future;
-use tokio_core::reactor::Handle;
 
 use super::error::{Error, ErrorKind};
-use super::curl::{build_query, Fetch};
+use super::http::{build_query, Fetch};
 use super::future::{NewTdFuture, TdFuture};
 
 pub const API_URL: &'static str = "https://api.twitch.tv/";
@@ -23,8 +22,8 @@ pub struct OwlChannel {
 	pub team: String
 }
 
-pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
-	let mut req = Fetch::new(&handle);
+pub fn list(url: String) -> TdFuture<Vec<(i64, f32, String)>> {
+	let mut req = Fetch::new();
 	req.set_url(url);
 
 	let req = req.exec().and_then(move |res| {
@@ -57,8 +56,8 @@ pub fn list(handle: Handle, url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 
 	TdFuture::new(Box::new(req))
 }
-pub fn download(handle: Handle, url: String) -> TdFuture<Vec<u8>> {
-	let mut req = Fetch::new(&handle);
+pub fn download(url: String) -> TdFuture<Vec<u8>> {
+	let mut req = Fetch::new();
 	req.set_url(url);
 
 	let req = req.exec().and_then(move |res| {
@@ -67,7 +66,7 @@ pub fn download(handle: Handle, url: String) -> TdFuture<Vec<u8>> {
 
 	TdFuture::new(Box::new(req))
 }
-pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> {
+pub fn channel(name: String, token: String) -> TdFuture<String> {
 	let token_param = {
 		let mut arr: Vec<(&str, &str)> = Vec::new();
 		arr.push(("need_https", "true"));
@@ -82,7 +81,7 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	#[cfg(debug_assertions)]
 	println!("Start fetch access_token: {}", token_url);
 
-	let mut token_req = Fetch::new(&handle);
+	let mut token_req = Fetch::new();
 	token_req.set_url(token_url);
 	
 	let req = token_req.exec().and_then(move |res| {
@@ -126,7 +125,7 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 		}
 	});
 
-	let mut list_req = Fetch::new(&handle);
+	let mut list_req = Fetch::new();
 
 	let req = req.and_then(move |res| {
 		#[cfg(debug_assertions)]
@@ -164,8 +163,8 @@ pub fn channel(handle: Handle, name: String, token: String) -> TdFuture<String> 
 	TdFuture::new(Box::new(req))
 }
 
-pub fn get_all_access_channels(handle: Handle) -> TdFuture<Vec<OwlChannel>> {
-	let mut req = Fetch::new(&handle);
+pub fn get_all_access_channels() -> TdFuture<Vec<OwlChannel>> {
+	let mut req = Fetch::new();
 	req.set_url(String::from(GQL_URL));
 	req.set_post(String::from("[{\"operationName\":\"MultiviewGetChanletDetails\",\"variables\":{\"channelLogin\":\"overwatchleague\"},\"extensions\":{\"persistedQuery\":{\"version\":1,\"sha256Hash\":\"23e36d2b3a68dcb2f634dd5d7682e3a918a5598f63ad3a6415a6df602e3f7447\"}}}]"));
 	let req = req.exec().and_then(move |res| {
