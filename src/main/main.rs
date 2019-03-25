@@ -9,18 +9,16 @@ extern crate tokio;
 extern crate hyper;
 extern crate hyper_tls;
 
-use std::{env, io, time, thread};
-
-use getopts::{Options, Matches};
-
-use manager::Manager;
-
-mod http;
 #[allow(deprecated)]
 mod error;
-mod manager;
-mod twitch;
 mod future;
+mod http;
+mod twitch;
+mod manager;
+
+use std::{env, io, time, thread};
+use getopts::{Options, Matches};
+use manager::Manager;
 
 fn main() {
 	let args: Vec<String> = env::args().collect();

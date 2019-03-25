@@ -188,18 +188,23 @@ impl Manager {
 		let builder = thread::Builder::new().name("Manager".into());
 		let t_download_queue = this.lock().unwrap().download_queue.clone();
 		let t_list_queue = this.lock().unwrap().list_queue.clone();
+		let t_other_thread = this.lock().unwrap().other_thread.clone();
 		builder.spawn(move || {
 			let mut last_count = 0;
 			let mut last_create = SystemTime::now();
 			this.lock().unwrap().create_download();
 			loop {
 				if let Ok(queue) = t_download_queue.lock() {
-					if let Ok(past) = SystemTime::now().duration_since(last_create) {
-						let cur_count = queue.len();
-						if past.as_secs() > 2 && cur_count > last_count && cur_count - last_count > 10 {
-							last_count = queue.len();
-							last_create = SystemTime::now();
-							this.lock().unwrap().create_download();
+					let cur_time = SystemTime::now();
+					if let Ok(past) = cur_time.duration_since(last_create) {
+						if past.as_secs() > 2 {
+							let cur_count = queue.len();
+							let tc = usize::from(*(t_other_thread.lock().unwrap()));
+							if cur_count > last_count || last_count - cur_count > tc {
+								last_count = cur_count;
+								last_create = cur_time;
+								this.lock().unwrap().create_download();
+							}
 						}
 					}
 				}

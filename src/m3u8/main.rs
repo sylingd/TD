@@ -1,12 +1,12 @@
 extern crate getopts;
-
-use std::{env, io};
-
-use getopts::{Options, Matches};
-
-use create_m3u8::ScanResult;
+extern crate m3u8_rs;
+extern crate chrono;
 
 mod create_m3u8;
+
+use std::{env, io};
+use getopts::{Options, Matches};
+use create_m3u8::ScanResult;
 
 fn main() {
 	let args: Vec<String> = env::args().collect();
