@@ -167,7 +167,7 @@ fn main() {
 				let dcnt = manager.lock().unwrap().get_download_thread();
 				let cnt = manager.lock().unwrap().get_other_thread();
 				if cnt > 0 || dcnt > 0 {
-					thread::sleep(time::Duration::from_secs(1));
+					thread::sleep(time::Duration::from_micros(1500));
 
 					pb1.set_length(u64::from(cnt + dcnt));
 					pb1.set_position(u64::from(cnt));

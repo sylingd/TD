@@ -43,7 +43,7 @@ deploy:
   skip_cleanup: true
   provider: GitHub
   auth_token:
-    secure: uN3rEJNowrv0VDqIhMw9T8YQUCp1jDP2T0hTXf8F4MB/s2p19NPaip29uVju+QRM
+    secure: RLlbvcaQdo+OUAQjNv09//5d4cqi22kfmkiyLX1lEFqT1qjv9fKGGaUbsJlLzkD+
   on:
     branch: master
     APPVEYOR_REPO_TAG: false

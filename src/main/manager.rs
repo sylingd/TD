@@ -85,6 +85,7 @@ impl Manager {
 			}
 			let mut rt = current_thread::Runtime::new().expect("new rt");
 			let mut retry = 0;
+			let mut sleep_time = 5;
 			let mut queued = Vec::new();
 			loop {
 				let req = twitch::list(info.url.clone());
@@ -100,6 +101,9 @@ impl Manager {
 									name: name,
 									url: u
 								});
+								if sleep_time >= 1 {
+									sleep_time -= 1;
+								}
 								{
 									let mut tt = t_total.lock().unwrap();
 									*tt += 1;
@@ -117,7 +121,9 @@ impl Manager {
 						}
 					}
 				}
-				thread::sleep(Duration::from_secs(2));
+				if sleep_time >= 1 {
+					thread::sleep(Duration::from_secs(sleep_time));
+				}
 			}
 			{
 				let mut tc = t_other_thread.lock().unwrap();
@@ -174,7 +180,7 @@ impl Manager {
 								break;
 							}
 						}
-						thread::sleep(Duration::from_millis(1500));
+						thread::sleep(Duration::from_secs(2));
 					}
 				}
 			}
@@ -191,21 +197,14 @@ impl Manager {
 		let t_other_thread = this.lock().unwrap().other_thread.clone();
 		builder.spawn(move || {
 			let mut last_count = 0;
-			let mut last_create = SystemTime::now();
 			this.lock().unwrap().create_download();
 			loop {
 				if let Ok(queue) = t_download_queue.lock() {
-					let cur_time = SystemTime::now();
-					if let Ok(past) = cur_time.duration_since(last_create) {
-						if past.as_secs() > 2 {
-							let cur_count = queue.len();
-							let tc = usize::from(*(t_other_thread.lock().unwrap())) + 2;
-							if cur_count > tc && (cur_count > last_count || last_count - cur_count < tc) {
-								last_count = cur_count;
-								last_create = cur_time;
-								this.lock().unwrap().create_download();
-							}
-						}
+					let cur_count = queue.len();
+					let tc = usize::from(*(t_other_thread.lock().unwrap())) + 2;
+					if cur_count > tc && (cur_count > last_count || last_count - cur_count < tc) {
+						last_count = cur_count;
+						this.lock().unwrap().create_download();
 					}
 				}
 				if let Ok(mut list_queue) = t_list_queue.lock() {
@@ -213,7 +212,7 @@ impl Manager {
 						this.lock().unwrap().create_list(new_list);
 					}
 				}
-				thread::sleep(Duration::from_secs(1));
+				thread::sleep(Duration::from_secs(2));
 			}
 		}).unwrap();
 	}
