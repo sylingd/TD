@@ -30,7 +30,7 @@ pub fn list(url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 		let parsed = parse_media_playlist_res(&res);
 		match parsed {
 			Ok(v) => {
-				let mut result = Vec::new();
+				let mut result = Vec::with_capacity(30);
 				for it in v.segments {
 					let time = match it.program_date_time {
 						Some(x) => match x.parse::<DateTime<Utc>>() {
@@ -68,7 +68,7 @@ pub fn download(url: String) -> TdFuture<Vec<u8>> {
 }
 pub fn channel(name: String, token: String) -> TdFuture<String> {
 	let token_param = {
-		let mut arr: Vec<(&str, &str)> = Vec::new();
+		let mut arr: Vec<(&str, &str)> = Vec::with_capacity(6);
 		arr.push(("need_https", "true"));
 		arr.push(("oauth_token", token.as_str()));
 		arr.push(("platform", "web"));
@@ -100,7 +100,7 @@ pub fn channel(name: String, token: String) -> TdFuture<String> {
 					None => ""
 				};
 				let playlist_param = {
-					let mut arr: Vec<(&str, &str)> = Vec::new();
+					let mut arr: Vec<(&str, &str)> = Vec::with_capacity(14);
 					arr.push(("allow_source", "true"));
 					arr.push(("baking_bread", "false"));
 					arr.push(("baking_brownies", "false"));

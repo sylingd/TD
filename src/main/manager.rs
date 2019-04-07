@@ -245,8 +245,8 @@ impl Manager {
 	}
 	pub fn new() -> Arc<Mutex<Self>> {
 		let res = Arc::new(Mutex::new(Manager {
-			download_queue: Arc::new(Mutex::new(Vec::new())),
-			list_queue: Arc::new(Mutex::new(Vec::new())),
+			download_queue: Arc::new(Mutex::new(Vec::with_capacity(300))),
+			list_queue: Arc::new(Mutex::new(Vec::with_capacity(20))),
 			other_thread: Arc::new(Mutex::new(0)),
 			download_thread: Arc::new(Mutex::new(0)),
 			total: Arc::new(Mutex::new(0)),
