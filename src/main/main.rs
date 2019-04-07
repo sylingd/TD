@@ -138,7 +138,7 @@ fn main() {
 			let dcnt = manager.lock().unwrap().get_download_thread();
 			let cnt = manager.lock().unwrap().get_other_thread();
 			if cnt > 0 || dcnt > 0 {
-				thread::sleep(time::Duration::from_micros(1500));
+				thread::sleep(time::Duration::from_secs(1));
 			} else {
 				break;
 			}
@@ -151,15 +151,15 @@ fn main() {
 
 		let m = MultiProgress::new();
 		let sty = ProgressStyle::default_bar()
-			.template("[{bar:40.cyan/blue}] {pos:>5}/{len:5} {msg}")
+			.template("[{bar:30.cyan/blue}] {pos:>5}/{len:5} {msg}")
 			.progress_chars("##-");
 
 		let pb1 = m.add(ProgressBar::new(2));
 		pb1.set_style(sty.clone());
-		pb1.set_message("O / Thread");
+		pb1.set_message("Thread");
 		let pb2 = m.add(ProgressBar::new(2));
 		pb2.set_style(sty.clone());
-		pb2.set_message("D / Total");
+		pb2.set_message("Total");
 
 		let builder = thread::Builder::new().name("MainDisplay".into());
 		builder.spawn(move || {
@@ -167,7 +167,7 @@ fn main() {
 				let dcnt = manager.lock().unwrap().get_download_thread();
 				let cnt = manager.lock().unwrap().get_other_thread();
 				if cnt > 0 || dcnt > 0 {
-					thread::sleep(time::Duration::from_micros(1500));
+					thread::sleep(time::Duration::from_secs(1));
 
 					pb1.set_length(u64::from(cnt + dcnt));
 					pb1.set_position(u64::from(cnt));
