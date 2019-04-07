@@ -15,7 +15,6 @@ mod future;
 mod http;
 mod twitch;
 mod manager;
-mod utils;
 
 use std::{env, io, time, thread};
 use getopts::{Options, Matches};
@@ -139,7 +138,7 @@ fn main() {
 			let dcnt = manager.lock().unwrap().get_download_thread();
 			let cnt = manager.lock().unwrap().get_other_thread();
 			if cnt > 0 || dcnt > 0 {
-				thread::sleep(time::Duration::from_secs(1));
+				thread::sleep(time::Duration::from_micros(1500));
 			} else {
 				break;
 			}

@@ -8,7 +8,6 @@ use tokio::runtime::current_thread;
 use chrono::offset::Local;
 
 use super::twitch;
-use super::utils;
 
 const QUEUED_SIZE: usize = 30;
 
@@ -97,26 +96,13 @@ impl Manager {
 					Ok(res) => {
 						retry = 0;
 						for (time, d, u) in res {
-							let hash = utils::hash(u.as_bytes());
-							let tz = u.get(65..75);
-							if let None = tz {
-								continue;
-							}
-							let tz = String::from(tz.unwrap());
-							let mut is_contains = false;
-							for i in queued.len()..0 {
-								if queued[i].0 == hash && queued[i].1 == tz {
-									is_contains = true;
-									break;
-								}
-							}
-							if is_contains {
+							if queued.contains(u) {
 								continue;
 							}
 							if queued.len() == QUEUED_SIZE {
 								queued.remove(0);
 							}
-							queued.push((hash, tz));
+							queued.push(u.clone());
 							let name = format!("{}_{}.ts", time, d);
 							t_download_queue.lock().unwrap().insert(0, DownloadMedia {
 								output: info.output.clone(),
