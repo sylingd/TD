@@ -15,6 +15,7 @@ mod future;
 mod http;
 mod twitch;
 mod manager;
+mod utils;
 
 use std::{env, io, time, thread};
 use getopts::{Options, Matches};

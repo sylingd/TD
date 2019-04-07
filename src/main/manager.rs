@@ -8,6 +8,9 @@ use tokio::runtime::current_thread;
 use chrono::offset::Local;
 
 use super::twitch;
+use super::utils;
+
+const QUEUED_SIZE: usize = 30;
 
 struct DownloadList {
 	pub output: String,
@@ -85,29 +88,47 @@ impl Manager {
 			}
 			let mut rt = current_thread::Runtime::new().expect("new rt");
 			let mut retry = 0;
-			let mut sleep_time = 5;
-			let mut queued = Vec::new();
+			let mut sleep_time: u64;
+			let mut queued: Vec<(u64, String)> = Vec::with_capacity(QUEUED_SIZE);
 			loop {
+				sleep_time = 5;
 				let req = twitch::list(info.url.clone());
 				match rt.block_on(req) {
 					Ok(res) => {
 						retry = 0;
 						for (time, d, u) in res {
-							if !queued.contains(&u) {
-								queued.push(u.clone());
-								let name = format!("{}_{}.ts", time, d);
-								t_download_queue.lock().unwrap().insert(0, DownloadMedia {
-									output: info.output.clone(),
-									name: name,
-									url: u
-								});
-								if sleep_time >= 1 {
-									sleep_time -= 1;
+							let hash = utils::hash(u.as_bytes());
+							let tz = u.get(65..75);
+							if let None = tz {
+								continue;
+							}
+							let tz = String::from(tz.unwrap());
+							let mut is_contains = false;
+							for i in queued.len()..0 {
+								if queued[i].0 == hash && queued[i].1 == tz {
+									is_contains = true;
+									break;
 								}
-								{
-									let mut tt = t_total.lock().unwrap();
-									*tt += 1;
-								}
+							}
+							if is_contains {
+								continue;
+							}
+							if queued.len() == QUEUED_SIZE {
+								queued.remove(0);
+							}
+							queued.push((hash, tz));
+							let name = format!("{}_{}.ts", time, d);
+							t_download_queue.lock().unwrap().insert(0, DownloadMedia {
+								output: info.output.clone(),
+								name: name,
+								url: u
+							});
+							if sleep_time >= 1 {
+								sleep_time -= 1;
+							}
+							{
+								let mut tt = t_total.lock().unwrap();
+								*tt += 1;
 							}
 						}
 					},
