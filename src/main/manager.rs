@@ -88,26 +88,26 @@ impl Manager {
 			let mut rt = current_thread::Runtime::new().expect("new rt");
 			let mut retry = 0;
 			let mut sleep_time: u64;
-			let mut queued: Vec<(u64, String)> = Vec::with_capacity(QUEUED_SIZE);
+			let mut queued: Vec<String> = Vec::with_capacity(QUEUED_SIZE);
 			loop {
 				sleep_time = 5;
 				let req = twitch::list(info.url.clone());
 				match rt.block_on(req) {
 					Ok(res) => {
 						retry = 0;
-						for (time, d, u) in res {
-							if queued.contains(u) {
+						for (time, d, url) in res {
+							if queued.contains(&url) {
 								continue;
 							}
 							if queued.len() == QUEUED_SIZE {
 								queued.remove(0);
 							}
-							queued.push(u.clone());
+							queued.push(url.clone());
 							let name = format!("{}_{}.ts", time, d);
 							t_download_queue.lock().unwrap().insert(0, DownloadMedia {
 								output: info.output.clone(),
 								name: name,
-								url: u
+								url: url
 							});
 							if sleep_time >= 1 {
 								sleep_time -= 1;
