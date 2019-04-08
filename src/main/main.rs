@@ -143,15 +143,12 @@ fn main() {
 		use indicatif::ProgressBar;
 		let pb = ProgressBar::new(10);
 
-		let builder = thread::Builder::new().name("MainDisplay".into());
-		builder.spawn(move || {
-			loop {
-				thread::sleep(time::Duration::from_secs(1));
+		loop {
+			thread::sleep(time::Duration::from_secs(1));
 
-				pb.set_length(manager.get_total());
-				pb.set_position(manager.get_downloaded());
-			}
-		}).unwrap().join();
+			pb.set_length(manager.get_total());
+			pb.set_position(manager.get_downloaded());
+		}
 	}
 }
 

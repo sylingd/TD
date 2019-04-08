@@ -50,6 +50,7 @@ impl Pool {
 				#[cfg(debug_assertions)]
 				println!("Wakeup a thread");
 
+				worker.is_sleep.store(false, Ordering::Relaxed);
 				worker.thread.thread().unpark();
 				is_wakeup = true;
 				break;
@@ -106,8 +107,6 @@ impl Worker {
 				if t_is_kill.load(Ordering::Relaxed) == true {
 					break;
 				}
-				// if t_is_sleep.load(Ordering::Relaxed) == false {
-				// }
 				let have_job = jobs.lock().unwrap().pop_front();
 				if let Some(job) = have_job {
 					job.call_box();
@@ -115,7 +114,6 @@ impl Worker {
 					t_is_sleep.store(true, Ordering::Relaxed);
 					*(t_sleep_time.lock().unwrap()) = SystemTime::now();
 					thread::park();
-					t_is_sleep.store(false, Ordering::Relaxed);
 				}
 			}
 		});
