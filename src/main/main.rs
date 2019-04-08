@@ -15,6 +15,7 @@ mod future;
 mod http;
 mod twitch;
 mod manager;
+mod threadpool;
 
 use std::{env, io, time, thread};
 use getopts::{Options, Matches};
@@ -70,7 +71,7 @@ fn main() {
 	let mode: u8 = mode.parse().unwrap_or(1);
 
 	if mode == 2 || mode == 3 {
-		let channels = manager.lock().unwrap().get_all_access_channels().unwrap();
+		let channels = manager.get_all_access_channels().unwrap();
 		if mode == 2 {
 			for i in 0..channels.len() {
 				println!("* {}: {}", i, channels[i].name);
@@ -84,13 +85,13 @@ fn main() {
 				for index in split_channels {
 					let index: usize = index.parse().unwrap_or(9999);
 					if let Some(v) = channels.get(index) {
-						manager.lock().unwrap().init_channel(output_dir.clone(), v.channel.clone(), token.clone(), v.player.clone());
+						manager.init_channel(output_dir.clone(), v.channel.clone(), token.clone(), v.player.clone());
 					}
 				}
 			} else {
 				let index: usize = channel_index.parse().unwrap_or(9999);
 				if let Some(v) = channels.get(index) {
-					manager.lock().unwrap().init_channel(output_dir.clone(), v.channel.clone(), token.clone(), v.player.clone());
+					manager.init_channel(output_dir.clone(), v.channel.clone(), token.clone(), v.player.clone());
 				}
 			}
 		} else {
@@ -110,7 +111,7 @@ fn main() {
 						(!player.is_empty() && channel.player.contains(player.as_str())) ||
 						(!team.is_empty() && channel.team.contains(team.as_str()));
 				if is_add {
-					manager.lock().unwrap().init_channel(output_dir.clone(), channel.channel.clone(), token.clone(), channel.player.clone());
+					manager.init_channel(output_dir.clone(), channel.channel.clone(), token.clone(), channel.player.clone());
 				}
 			}
 		}
@@ -125,61 +126,32 @@ fn main() {
 		if channels.contains(",") {
 			let split_channels = channels.split(",");
 			for channel in split_channels {
-				manager.lock().unwrap().init_channel(output_dir.clone(), String::from(channel), token.clone(), String::new());
+				manager.init_channel(output_dir.clone(), String::from(channel), token.clone(), String::new());
 			}
 		} else {
-			manager.lock().unwrap().init_channel(output_dir.clone(), channels, token, String::new());
+			manager.init_channel(output_dir.clone(), channels, token, String::new());
 		}
 	}
 
 	#[cfg(debug_assertions)]
-	{
-		loop {
-			let dcnt = manager.lock().unwrap().get_download_thread();
-			let cnt = manager.lock().unwrap().get_other_thread();
-			if cnt > 0 || dcnt > 0 {
-				thread::sleep(time::Duration::from_secs(1));
-			} else {
-				break;
-			}
-		}
+	loop {
+		thread::sleep(time::Duration::from_secs(1));
 	}
 
 	#[cfg(not(debug_assertions))]
 	{
-		use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-
-		let m = MultiProgress::new();
-		let sty = ProgressStyle::default_bar()
-			.template("[{bar:30.cyan/blue}] {pos:>5}/{len:5} {msg}")
-			.progress_chars("##-");
-
-		let pb1 = m.add(ProgressBar::new(2));
-		pb1.set_style(sty.clone());
-		pb1.set_message("Thread");
-		let pb2 = m.add(ProgressBar::new(2));
-		pb2.set_style(sty.clone());
-		pb2.set_message("Total");
+		use indicatif::ProgressBar;
+		let pb = ProgressBar::new(10);
 
 		let builder = thread::Builder::new().name("MainDisplay".into());
 		builder.spawn(move || {
 			loop {
-				let dcnt = manager.lock().unwrap().get_download_thread();
-				let cnt = manager.lock().unwrap().get_other_thread();
-				if cnt > 0 || dcnt > 0 {
-					thread::sleep(time::Duration::from_secs(1));
+				thread::sleep(time::Duration::from_secs(1));
 
-					pb1.set_length(u64::from(cnt + dcnt));
-					pb1.set_position(u64::from(cnt));
-
-					pb2.set_length(manager.lock().unwrap().get_total());
-					pb2.set_position(manager.lock().unwrap().get_downloaded());
-				} else {
-					break;
-				}
+				pb.set_length(manager.get_total());
+				pb.set_position(manager.get_downloaded());
 			}
-		}).unwrap();
-		m.join_and_clear().unwrap();
+		}).unwrap().join();
 	}
 }
 
