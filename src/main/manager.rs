@@ -123,18 +123,19 @@ impl Manager {
 		let t_list = this.list_queue.clone();
 		thread::spawn(move || {
 			loop {
-				#[cfg(debug_assertions)]
-				println!("Start fetch all lists");
-
-				let list = t_list.lock().unwrap();
-				for i in 0..list.len() {
-					if list[i].is_running.load(Ordering::Relaxed) == false {
-						#[cfg(debug_assertions)]
-						println!("Fetch one list");
-
-						list[i].is_running.store(true, Ordering::Relaxed);
-						Self::list(this.clone(), list[i].clone());
+				let to_fetch = {
+					let list = t_list.lock().unwrap();
+					let mut res = Vec::with_capacity(list.len());
+					for i in 0..list.len() {
+						if list[i].is_running.load(Ordering::Relaxed) == false {
+							list[i].is_running.store(true, Ordering::Relaxed);
+							res.push(list[i].clone());
+						}
 					}
+					res
+				};
+				for it in to_fetch {
+					Self::list(this.clone(), it);
 				}
 				thread::sleep(Duration::from_secs(2));
 			}
