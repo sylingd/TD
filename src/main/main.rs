@@ -29,6 +29,8 @@ fn main() {
 	opts.optopt("m", "mode", "Set download mode", "");
 	opts.optopt("d", "dir", "Set output directory", "");
 	opts.optopt("c", "channel", "Set channel(s)", "");
+	opts.optopt("", "min-thread", "Min threads", "");
+	opts.optopt("", "max-thread", "Max threads", "");
 	// Options about auto mode
 	opts.optopt("", "player", "Recode one player", "");
 	opts.optopt("", "team", "Recode one team", "");
@@ -40,7 +42,6 @@ fn main() {
 	};
 	let has_opt = args.len() > 1;
 
-	let manager = Manager::new();
 	let mut output_dir = get_arg(&matches, "d");
 	if output_dir == "" {
 		output_dir = String::new();
@@ -69,6 +70,11 @@ fn main() {
 		mode = String::from(mode.trim());
 	}
 	let mode: u8 = mode.parse().unwrap_or(1);
+
+	let min_thread: usize = get_arg(&matches, "min-thread").parse().unwrap_or(2);
+	let max_thread: usize = get_arg(&matches, "max-thread").parse().unwrap_or(10);
+
+	let manager = Manager::new(min_thread, max_thread);
 
 	if mode == 2 || mode == 3 {
 		let channels = manager.get_all_access_channels().unwrap();

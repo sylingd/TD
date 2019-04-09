@@ -1085,7 +1085,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "twitchdl"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",

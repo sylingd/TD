@@ -2,7 +2,7 @@ use std::fs;
 use std::thread;
 use std::path::Path;
 use std::time::Duration;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic::{Ordering, AtomicBool}};
 
 use tokio::runtime::current_thread;
 use chrono::offset::Local;
@@ -15,7 +15,8 @@ const QUEUED_SIZE: usize = 400;
 #[derive(Clone, Debug)]
 struct DownloadList {
 	pub output: String,
-	pub url: String
+	pub url: String,
+	pub is_running: Arc<AtomicBool>
 }
 
 struct DownloadMedia {
@@ -51,13 +52,15 @@ impl Manager {
 						fs::create_dir_all(path).unwrap();
 					}
 
-					t_list_queue.lock().unwrap().push(DownloadList {
+					let mut list = t_list_queue.lock().unwrap();
+					list.push(DownloadList {
 						output: output,
-						url: v
+						url: v,
+						is_running: Arc::new(AtomicBool::new(false))
 					});
 				}
 			}
-		});
+		}, true);
 	}
 	fn list(this: Arc<Self>, info: DownloadList) {
 		let t_queued = this.queued.clone();
@@ -86,7 +89,8 @@ impl Manager {
 					*(t_total.lock().unwrap()) += 1;
 				}
 			}
-		});
+			info.is_running.store(false, Ordering::Relaxed);
+		}, false);
 	}
 	fn download(this: Arc<Self>, media: DownloadMedia) {
 		let t_downloaded = this.downloaded.clone();
@@ -113,20 +117,25 @@ impl Manager {
 					Self::download(t_this.clone(), media);
 				}
 			}
-		});
+		}, false);
 	}
 	pub fn start(this: Arc<Self>) {
 		let t_list = this.list_queue.clone();
 		thread::spawn(move || {
 			loop {
 				#[cfg(debug_assertions)]
-				println!("Fetch lists");
+				println!("Start fetch all lists");
 
 				let list = t_list.lock().unwrap();
 				for i in 0..list.len() {
-					Self::list(this.clone(), list[i].clone());
-				}
+					if list[i].is_running.load(Ordering::Relaxed) == false {
+						#[cfg(debug_assertions)]
+						println!("Fetch one list");
 
+						list[i].is_running.store(true, Ordering::Relaxed);
+						Self::list(this.clone(), list[i].clone());
+					}
+				}
 				thread::sleep(Duration::from_secs(2));
 			}
 		});
@@ -152,11 +161,11 @@ impl Manager {
 	pub fn get_total(&self) -> u64 {
 		*(self.total.lock().unwrap())
 	}
-	pub fn new() -> Arc<Self> {
+	pub fn new(min: usize, max: usize) -> Arc<Self> {
 		let res = Arc::new(Manager {
 			list_queue: Arc::new(Mutex::new(Vec::with_capacity(20))),
 			queued: Arc::new(Mutex::new(Vec::with_capacity(QUEUED_SIZE))),
-			pool: Arc::new(Mutex::new(threadpool::Pool::new(2, 10))),
+			pool: Arc::new(Mutex::new(threadpool::Pool::new(min, max))),
 			total: Arc::new(Mutex::new(0)),
 			downloaded: Arc::new(Mutex::new(0))
 		});

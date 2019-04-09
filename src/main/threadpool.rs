@@ -34,22 +34,23 @@ impl Pool {
 			workers: workers,
 			min: min,
 			max: max,
-			last_create: SystemTime::now()
+			last_create: SystemTime::UNIX_EPOCH
 		}
 	}
 	fn create_worker(&mut self) {
 		self.workers.push(Worker::new(self.jobs.clone()));
 	}
-	pub fn execute<F>(&mut self, f: F) where F: FnOnce() + Send + 'static {
+	pub fn execute<F>(&mut self, f: F, agency: bool) where F: FnOnce() + Send + 'static {
 		let mut is_wakeup = false;
 		let job = Box::new(f);
-		self.jobs.lock().unwrap().push_back(job);
+		if agency {
+			self.jobs.lock().unwrap().push_front(job);
+		} else {
+			self.jobs.lock().unwrap().push_back(job);
+		}
 		// Try to active a sleeping thread
 		for worker in &self.workers {
 			if worker.is_sleep.load(Ordering::Relaxed) == true {
-				#[cfg(debug_assertions)]
-				println!("Wakeup a thread");
-
 				worker.is_sleep.store(false, Ordering::Relaxed);
 				worker.thread.thread().unpark();
 				is_wakeup = true;
@@ -58,12 +59,9 @@ impl Pool {
 		}
 		// Create a new thread if required
 		if !is_wakeup {
-			#[cfg(debug_assertions)]
-			println!("Nothing to wakeup");
-
 			let time = SystemTime::now();
 			if self.max > self.workers.len() &&
-				time.duration_since(self.last_create).unwrap().as_secs() > 2 {
+				time.duration_since(self.last_create).unwrap().as_secs() >= 1 {
 				#[cfg(debug_assertions)]
 				println!("Create new thread");
 
