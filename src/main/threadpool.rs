@@ -19,6 +19,7 @@ pub struct Pool {
 	jobs: Arc<Mutex<VecDeque<Job>>>,
 	min: usize,
 	max: usize,
+	thread_id: u64,
 	last_create: SystemTime
 }
 
@@ -26,19 +27,23 @@ impl Pool {
 	pub fn new(min: usize, max: usize) -> Pool {
 		let jobs = Arc::new(Mutex::new(VecDeque::with_capacity(20)));
 		let mut workers = Vec::with_capacity(min);
+		let mut thread_id = 0;
 		for _i in 0..min {
-			workers.push(Worker::new(jobs.clone()));
+			workers.push(Worker::new(thread_id, jobs.clone()));
+			thread_id += 1;
 		}
 		Pool {
 			jobs: jobs,
 			workers: workers,
 			min: min,
 			max: max,
+			thread_id: thread_id,
 			last_create: SystemTime::UNIX_EPOCH
 		}
 	}
 	fn create_worker(&mut self) {
-		self.workers.push(Worker::new(self.jobs.clone()));
+		self.workers.push(Worker::new(self.thread_id, self.jobs.clone()));
+		self.thread_id += 1;
 	}
 	pub fn execute<F>(&mut self, f: F, agency: bool) where F: FnOnce() + Send + 'static {
 		let mut is_wakeup = false;
@@ -93,14 +98,15 @@ struct Worker {
 }
 
 impl Worker {
-	pub fn new(jobs: Arc<Mutex<VecDeque<Job>>>) -> Worker {
+	pub fn new(thread_id: u64, jobs: Arc<Mutex<VecDeque<Job>>>) -> Worker {
 		let is_sleep = Arc::new(AtomicBool::new(true));
 		let is_kill = Arc::new(AtomicBool::new(false));
 		let sleep_time = Arc::new(Mutex::new(SystemTime::now()));
 		let t_is_sleep = is_sleep.clone();
 		let t_is_kill = is_kill.clone();
 		let t_sleep_time = sleep_time.clone();
-		let thread = thread::spawn(move || {
+		let builder = thread::Builder::new().name(format!("Pool {}", thread_id));
+		let thread = builder.spawn(move || {
 			loop {
 				if t_is_kill.load(Ordering::Relaxed) == true {
 					break;
@@ -114,7 +120,7 @@ impl Worker {
 					thread::park();
 				}
 			}
-		});
+		}).unwrap();
 		Worker {
 			is_sleep: is_sleep,
 			is_kill: is_kill,

@@ -106,8 +106,11 @@ impl Manager {
 					println!("Downloaded {}", media.name);
 
 					let write_to = format!("{}/{}", media.output, media.name);
-					fs::write(write_to, res).unwrap();
-					*(t_downloaded.lock().unwrap()) += 1;
+					if let Ok(_) = fs::write(write_to, res) {
+						*(t_downloaded.lock().unwrap()) += 1;
+					} else {
+						Self::download(t_this.clone(), media);
+					}
 				},
 				Err(_e) => {
 					// Download failed, retry
