@@ -98,10 +98,11 @@ impl Manager {
 		let mut pool = this.pool.lock().unwrap();
 		pool.execute(move || {
 			let mut rt = current_thread::Runtime::new().expect("new rt");
-			// Download
+
 			let req = twitch::download(media.url.clone());
 			match rt.block_on(req) {
 				Ok(res) => {
+					// Download
 					#[cfg(debug_assertions)]
 					println!("Downloaded {}", media.name);
 

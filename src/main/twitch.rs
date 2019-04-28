@@ -41,6 +41,11 @@ pub fn list(url: String) -> TdFuture<Vec<(i64, f32, String)>> {
 					};
 					let duration = it.duration;
 					let uri = it.uri;
+
+					if !uri.starts_with("https://") {
+						continue;
+					}
+
 					result.push((time, duration, uri));
 				}
 				Ok(result)
